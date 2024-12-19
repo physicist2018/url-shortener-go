@@ -16,7 +16,7 @@ type URLStorage struct {
 	sync.Mutex // для синхронизации
 }
 
-func (s *URLStorage) HasLongUrl(longURL string) (string, bool) {
+func (s *URLStorage) HasLongURL(longURL string) (string, bool) {
 	ok := false
 	var shortURL string
 
@@ -31,12 +31,12 @@ func (s *URLStorage) HasLongUrl(longURL string) (string, bool) {
 	return shortURL, ok
 }
 
-func (s *URLStorage) HasShortUrl(shortURL string) bool {
+func (s *URLStorage) HasShortURL(shortURL string) bool {
 	_, ok := s.Store[shortURL]
 	return ok
 }
 
-func (s *URLStorage) AddUrl(longURL string) (string, error) {
+func (s *URLStorage) AddURL(longURL string) (string, error) {
 	var shortURL string
 	var ok bool
 
@@ -55,7 +55,7 @@ func (s *URLStorage) AddUrl(longURL string) (string, error) {
 	return "", errors.New("too many attempts")
 }
 
-func (s *URLStorage) GetUrl(shortURL string) (string, error) {
+func (s *URLStorage) GetURL(shortURL string) (string, error) {
 	if val, ok := s.Store[shortURL]; ok {
 		return val, nil
 	}
@@ -102,17 +102,17 @@ func postRoute(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if shortUrl, ok := urlStorage.HasLongUrl(url); ok {
+	if shortURL, ok := urlStorage.HasLongURL(url); ok {
 		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusCreated)
-		w.Write([]byte(shortUrl))
+		w.Write([]byte("http://" + r.Host + "/" + shortURL))
 		return
 	}
 
-	if shortUrl, err := urlStorage.AddUrl(url); err == nil {
+	if shortURL, err := urlStorage.AddURL(url); err == nil {
 		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusCreated)
-		w.Write([]byte(shortUrl))
+		w.Write([]byte("http://" + r.Host + "/" + shortURL))
 		return
 	}
 	http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest) // 400
@@ -120,8 +120,8 @@ func postRoute(w http.ResponseWriter, r *http.Request) {
 
 func getRoute(w http.ResponseWriter, r *http.Request) {
 	shortUrl := r.URL.Path[1:]
-	if longUrl, err := urlStorage.GetUrl(shortUrl); err == nil {
-		w.Header().Set("Location", longUrl)
+	if longURL, err := urlStorage.GetURL(shortUrl); err == nil {
+		w.Header().Set("Location", longURL)
 		w.WriteHeader(http.StatusTemporaryRedirect)
 		return
 	}
