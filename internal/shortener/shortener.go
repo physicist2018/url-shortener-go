@@ -119,8 +119,8 @@ func postRoute(w http.ResponseWriter, r *http.Request) {
 }
 
 func getRoute(w http.ResponseWriter, r *http.Request) {
-	shortUrl := r.URL.Path[1:]
-	if longURL, err := urlStorage.GetURL(shortUrl); err == nil {
+	shortURL := r.URL.Path[1:]
+	if longURL, err := urlStorage.GetURL(shortURL); err == nil {
 		w.Header().Set("Location", longURL)
 		w.WriteHeader(http.StatusTemporaryRedirect)
 		return
