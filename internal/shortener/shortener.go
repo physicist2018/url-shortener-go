@@ -2,67 +2,14 @@ package shortener
 
 import (
 	"bufio"
-	"errors"
 	"io"
 	"net/http"
 	"strings"
-	"sync"
 
-	"github.com/physicist2018/url-shortener-go/internal/randomstring"
+	"github.com/physicist2018/url-shortener-go/internal/urlstorage"
 )
 
-type URLStorage struct {
-	Store      map[string]string
-	sync.Mutex // для синхронизации
-}
-
-func (s *URLStorage) HasLongURL(longURL string) (string, bool) {
-	ok := false
-	var shortURL string
-
-	for key, val := range s.Store {
-		if val == longURL {
-			ok = true
-			shortURL = key
-			break
-		}
-	}
-
-	return shortURL, ok
-}
-
-func (s *URLStorage) HasShortURL(shortURL string) bool {
-	_, ok := s.Store[shortURL]
-	return ok
-}
-
-func (s *URLStorage) AddURL(longURL string) (string, error) {
-	var shortURL string
-	var ok bool
-
-	for i := 0; i < 3; i++ {
-		shortURL = randomstring.RandomString(10)
-		if _, ok = s.Store[shortURL]; !ok {
-			break
-		}
-	}
-	if !ok {
-		s.Lock()
-		s.Store[shortURL] = longURL
-		s.Unlock()
-		return shortURL, nil
-	}
-	return "", errors.New("too many attempts")
-}
-
-func (s *URLStorage) GetURL(shortURL string) (string, error) {
-	if val, ok := s.Store[shortURL]; ok {
-		return val, nil
-	}
-	return "", errors.New("not found")
-}
-
-var urlStorage *URLStorage
+var urlStorage *urlstorage.URLStorage
 
 func RunServer() error {
 	mux := http.NewServeMux()
@@ -129,7 +76,7 @@ func getRoute(w http.ResponseWriter, r *http.Request) {
 }
 
 func init() {
-	urlStorage = &URLStorage{
+	urlStorage = &urlstorage.URLStorage{
 		Store: map[string]string{},
 	}
 }
