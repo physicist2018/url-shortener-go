@@ -1,9 +1,8 @@
 package randomstring
 
 import (
+	"math/rand"
 	"strings"
-
-	"golang.org/x/exp/rand"
 )
 
 const alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"

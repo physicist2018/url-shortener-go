@@ -3,7 +3,6 @@ package shortener
 import (
 	"bufio"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -97,9 +96,7 @@ func postRoute(w http.ResponseWriter, r *http.Request) {
 	}
 
 	url = strings.TrimSpace(url)
-	fmt.Println(url)
 	if shortUrl, ok := urlStorage.HasLongUrl(url); ok {
-		fmt.Println(shortUrl)
 		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusCreated)
 		w.Write([]byte(shortUrl))
@@ -107,7 +104,6 @@ func postRoute(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if shortUrl, err := urlStorage.AddUrl(url); err == nil {
-		fmt.Println(shortUrl)
 		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusCreated)
 		w.Write([]byte(shortUrl))
@@ -118,7 +114,6 @@ func postRoute(w http.ResponseWriter, r *http.Request) {
 
 func getRoute(w http.ResponseWriter, r *http.Request) {
 	shortUrl := r.URL.Path[1:]
-	fmt.Println(shortUrl)
 	if longUrl, err := urlStorage.GetUrl(shortUrl); err == nil {
 		w.Header().Set("Location", longUrl)
 		w.WriteHeader(http.StatusTemporaryRedirect)
