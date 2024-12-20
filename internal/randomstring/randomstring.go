@@ -9,7 +9,6 @@ const alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789
 
 // RandomString returns a random string of length n.
 func RandomString(n int) string {
-	rand.Seed(10)
 	return RandomStringWithAlphabet(n, alphabet)
 }
 

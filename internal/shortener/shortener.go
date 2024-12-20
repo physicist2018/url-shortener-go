@@ -11,7 +11,6 @@ import (
 
 var urlStorage *urlstorage.URLStorage
 
-// RunServer starts the server
 func RunServer() error {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", mainHandler)
@@ -20,16 +19,11 @@ func RunServer() error {
 
 // mainHandler is the handler for the main route
 // it examines method and call necessary callback function
-// when there is a post request to the / postRoute is called
-// when there is a get request to the / getRoute is called
+// in order to handle request properly
 func mainHandler(w http.ResponseWriter, r *http.Request) {
 	// Срзу отсекаем другий тип контента кроме text/plain
 
-	// Post request must have Content-Type: text/plain
-	// URL equals to /
-	if (r.Method == http.MethodPost) &&
-		strings.HasPrefix(r.Header.Get("Content-Type"), "text/plain") &&
-		(r.URL.Path == "/") {
+	if (r.Method == http.MethodPost) && strings.HasPrefix(r.Header.Get("Content-Type"), "text/plain") {
 		postRoute(w, r)
 
 	} else if r.Method == http.MethodGet {
@@ -55,14 +49,14 @@ func postRoute(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if shortURL, err := urlstorage.GetDefaultUrlStorage().FindShortURL(url); err == nil {
+	if shortURL, ok := urlStorage.HasLongURL(url); ok {
 		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusCreated)
 		w.Write([]byte("http://" + r.Host + "/" + shortURL))
 		return
 	}
 
-	if shortURL, err := urlstorage.GetDefaultUrlStorage().CreateShortURL(url); err == nil {
+	if shortURL, err := urlStorage.AddURL(url); err == nil {
 		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusCreated)
 		w.Write([]byte("http://" + r.Host + "/" + shortURL))
@@ -73,14 +67,16 @@ func postRoute(w http.ResponseWriter, r *http.Request) {
 
 func getRoute(w http.ResponseWriter, r *http.Request) {
 	shortURL := r.URL.Path[1:]
-	if longURL, err := urlstorage.GetDefaultUrlStorage().GetURL(shortURL); err == nil {
+	if longURL, err := urlStorage.GetURL(shortURL); err == nil {
 		w.Header().Set("Location", longURL)
 		w.WriteHeader(http.StatusTemporaryRedirect)
 		return
 	}
-	http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest) // 404
+	http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound) // 404
 }
 
 func init() {
-	urlStorage = urlstorage.GetDefaultUrlStorage()
+	urlStorage = &urlstorage.URLStorage{
+		Store: map[string]string{},
+	}
 }
