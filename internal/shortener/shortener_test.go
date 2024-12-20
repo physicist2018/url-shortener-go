@@ -104,7 +104,7 @@ func TestMainRoute(t *testing.T) {
 		response string
 	}
 	tests := []struct {
-		urls        urlstorage.URLStorage
+		urls        *urlstorage.URLStorage
 		name        string
 		method      string
 		url         string
@@ -112,7 +112,7 @@ func TestMainRoute(t *testing.T) {
 		contenttype string
 	}{
 		{
-			urls: urlstorage.URLStorage{
+			urls: &urlstorage.URLStorage{
 				Store: map[string]string{},
 			},
 			name:        "test_get_nothing",
@@ -125,7 +125,7 @@ func TestMainRoute(t *testing.T) {
 			},
 		},
 		{
-			urls: urlstorage.URLStorage{
+			urls: &urlstorage.URLStorage{
 				Store: map[string]string{
 					"qwerty": "yandex.ru",
 				},
@@ -151,7 +151,7 @@ func TestMainRoute(t *testing.T) {
 			}
 			r.Header.Set("Content-Type", tt.contenttype)
 			w := httptest.NewRecorder()
-			urlstorage.SetDefaultURLStorage(&tt.urls)
+			urlstorage.SetDefaultURLStorage(tt.urls)
 			mainHandler(w, r)
 			assert.Equal(t, tt.want.response, w.Body.String(), "Ответ не совпадает")
 			assert.Equal(t, tt.want.code, w.Code, "Код запроса не совпадает")
