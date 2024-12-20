@@ -2,7 +2,6 @@ package urlstorage
 
 import (
 	"errors"
-	"fmt"
 	"sync"
 
 	"github.com/physicist2018/url-shortener-go/internal/randomstring"
@@ -93,11 +92,10 @@ func (s *URLStorage) addURL(longURL string) (string, error) {
 	return "", errors.New(TooManyAttempts)
 }
 
-func GetDefaultUrlStorage() *URLStorage {
+func GetDefaultURLStorage() *URLStorage {
 	return defaultURLStorage
 }
 
-func SetDefaultUrlStorage(s *URLStorage) {
-	fmt.Println("New storage setup")
+func SetDefaultURLStorage(s *URLStorage) {
 	defaultURLStorage = s
 }

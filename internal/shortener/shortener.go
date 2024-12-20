@@ -55,14 +55,14 @@ func postRoute(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if shortURL, err := urlstorage.GetDefaultUrlStorage().FindShortURL(url); err == nil {
+	if shortURL, err := urlstorage.GetDefaultURLStorage().FindShortURL(url); err == nil {
 		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusCreated)
 		w.Write([]byte("http://" + r.Host + "/" + shortURL))
 		return
 	}
 
-	if shortURL, err := urlstorage.GetDefaultUrlStorage().CreateShortURL(url); err == nil {
+	if shortURL, err := urlstorage.GetDefaultURLStorage().CreateShortURL(url); err == nil {
 		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusCreated)
 		w.Write([]byte("http://" + r.Host + "/" + shortURL))
@@ -73,7 +73,7 @@ func postRoute(w http.ResponseWriter, r *http.Request) {
 
 func getRoute(w http.ResponseWriter, r *http.Request) {
 	shortURL := r.URL.Path[1:]
-	if longURL, err := urlstorage.GetDefaultUrlStorage().GetURL(shortURL); err == nil {
+	if longURL, err := urlstorage.GetDefaultURLStorage().GetURL(shortURL); err == nil {
 		w.Header().Set("Location", longURL)
 		w.WriteHeader(http.StatusTemporaryRedirect)
 		return
@@ -82,5 +82,5 @@ func getRoute(w http.ResponseWriter, r *http.Request) {
 }
 
 func init() {
-	urlStorage = urlstorage.GetDefaultUrlStorage()
+	urlStorage = urlstorage.GetDefaultURLStorage()
 }
