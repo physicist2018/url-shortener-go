@@ -42,7 +42,7 @@ func mainHandler(w http.ResponseWriter, r *http.Request) {
 
 // postRoute is the handler for POST request
 func postRoute(w http.ResponseWriter, r *http.Request) {
-	url, err := bufio.NewReader(r.Body).ReadString('\r')
+	url, err := bufio.NewReader(r.Body).ReadString('\n')
 
 	if (err != nil) && (err != io.EOF) {
 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest) // 400
