@@ -2,100 +2,86 @@ package urlstorage
 
 import (
 	"errors"
-	"sync"
 
 	"github.com/physicist2018/url-shortener-go/internal/randomstring"
 )
 
 const (
-	maxAttempts     = 3
-	shortURLLength  = 6
-	TooManyAttempts = "не удалось создать уникальную короткую ссылку за 3 попытки"
-	LongURLNotFound = "длинная ссылка не найдена"
-	ShortURLExists  = "ссылка уже существует"
-	ShortURLCreated = "ссылка создана успешно"
+	maxAttempts            = 3
+	shortURLLength         = 6
+	defaultStorageCapacity = 20
+	TooManyAttempts        = "не удалось создать уникальную короткую ссылку за 3 попытки"
+	LongURLNotFound        = "длинная ссылка не найдена"
+	ShortURLNotFound       = "короткая ссылка не найдена"
+	ShortURLExists         = "ссылка уже существует"
+	ShortURLCreated        = "ссылка создана успешно"
 )
 
-// Структура для хранения ссылок
+// Юаза представляет собой список объектов типа URLItem
+// по-сути - аналог таблицы
 type URLStorage struct {
-	Store      map[string]string
-	sync.Mutex // для синхронизации
+	Store []URLItem
 }
 
-var defaultURLStorage *URLStorage = &URLStorage{
-	Store: make(map[string]string, 0),
+var defaultURLStorage *URLStorage
+
+// NewURLStorage creates a new instance of URLStorage with an empty slice of URLItem and a default capacity.
+func NewURLStorage() *URLStorage {
+	return &URLStorage{
+		Store: make([]URLItem, 0, defaultStorageCapacity),
+	}
 }
 
-// CreateShortURL создает уникальную короткую ссылку и возвращает ее, а также error
+// CreateShortURL creates a new short URL in the storage
 func (s *URLStorage) CreateShortURL(longURL string) (string, error) {
+	// добавляем новый короткий URL в хранилище
+	for i := 0; i < maxAttempts; i++ {
+		shortURL := randomstring.RandomString(shortURLLength)
 
-	if shortURL, ok := s.hasLongURL(longURL); ok {
-		return shortURL, nil
+		if _, err := s.FindShortURL(shortURL); err != nil {
+			s.Store = append(s.Store, URLItem{
+				LongURL:  longURL,
+				ShortURL: shortURL,
+			})
+			return shortURL, nil
+		}
 	}
 
-	return s.addURL(longURL)
+	return "", errors.New(TooManyAttempts)
 }
 
-// GetURL возвращает короткую ссылку из хранилища и nil, если ссылка не найдена - nil и ошибка
-func (s *URLStorage) GetURL(shortURL string) (string, error) {
-	if val, ok := s.Store[shortURL]; ok {
-		return val, nil
+// GetLongURL returns a long URL by a short URL
+func (s *URLStorage) GetLongURL(shortURL string) (string, error) {
+	// возвращаем длинную ссылку по короткой
+	for i, v := range s.Store {
+		if v.ShortURL == shortURL {
+			return s.Store[i].LongURL, nil
+		}
+	}
+	return "", errors.New(ShortURLNotFound)
+
+}
+
+// FindShortURL returns a short URL by a long URL
+func (s *URLStorage) FindShortURL(longURL string) (string, error) {
+	for i, v := range s.Store {
+		if v.LongURL == longURL {
+			return s.Store[i].ShortURL, nil
+		}
 	}
 	return "", errors.New(LongURLNotFound)
 }
 
-func (s *URLStorage) FindShortURL(longURL string) (string, error) {
-
-	if shortURL, ok := s.hasLongURL(longURL); ok {
-		return shortURL, nil
-	} else {
-		return "", errors.New(LongURLNotFound)
-	}
-}
-
-// hasLongURL проверяет есть ли длинная ссылка в хранилище, если есть, возвращает
-// короткую сслку и true, если нет, возвращает false, при этом shortURL не валиден
-func (s *URLStorage) hasLongURL(longURL string) (string, bool) {
-	ok := false
-	var shortURL string
-
-	for key, val := range s.Store {
-		if val == longURL {
-			ok = true
-			shortURL = key
-			break
-		}
-	}
-
-	return shortURL, ok
-}
-
-// addURL добавляет новую ссылку в хранилище, возвращает короткую ссылку и nil,
-// если ссылка добавилась успешно иначе возвращает ошибку
-// На генерацию случайной ссылки есть три попытки
-func (s *URLStorage) addURL(longURL string) (string, error) {
-	var shortURL string
-	var ok bool
-
-	for i := 0; i < maxAttempts; i++ {
-		shortURL = randomstring.RandomString(shortURLLength)
-		if _, ok = s.Store[shortURL]; !ok {
-			break
-		}
-	}
-	if !ok {
-		s.Lock()
-		s.Store[shortURL] = longURL
-		s.Unlock()
-		return shortURL, nil
-	}
-	return "", errors.New(TooManyAttempts)
-}
-
+// GetDefaultURLStorage returns a default URLStorage instance
 func GetDefaultURLStorage() *URLStorage {
 	return defaultURLStorage
 }
 
+// SetDefaultURLStorage sets a default URLStorage instance
 func SetDefaultURLStorage(s *URLStorage) {
 	defaultURLStorage = s
+}
+
+func init() {
+	defaultURLStorage = NewURLStorage()
 }

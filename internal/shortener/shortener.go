@@ -6,16 +6,21 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/physicist2018/url-shortener-go/internal/urlstorage"
 )
 
-var urlStorage *urlstorage.URLStorage
-
 // RunServer starts the server
 func RunServer() error {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/", mainHandler)
-	return http.ListenAndServe(`:8080`, mux)
+	router := chi.NewRouter()
+	router.Use(middleware.AllowContentType("text/plain"))
+	router.Route("/", func(r chi.Router) {
+		r.Post("/", postRoute)
+		r.Get("/{shortURL}", getRoute)
+	})
+
+	return http.ListenAndServe(`:8080`, router)
 }
 
 // mainHandler is the handler for the main route
@@ -43,6 +48,15 @@ func mainHandler(w http.ResponseWriter, r *http.Request) {
 // postRoute is the handler for POST request
 func postRoute(w http.ResponseWriter, r *http.Request) {
 	url, err := bufio.NewReader(r.Body).ReadString('\n')
+	if !strings.HasPrefix(r.Header.Get("Content-Type"), "text/plain") {
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest) // 400
+		return
+	}
+
+	if r.URL.Path != "/" {
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest) // 400
+		return
+	}
 
 	if (err != nil) && (err != io.EOF) {
 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest) // 400
@@ -73,14 +87,10 @@ func postRoute(w http.ResponseWriter, r *http.Request) {
 
 func getRoute(w http.ResponseWriter, r *http.Request) {
 	shortURL := r.URL.Path[1:]
-	if longURL, err := urlstorage.GetDefaultURLStorage().GetURL(shortURL); err == nil {
+	if longURL, err := urlstorage.GetDefaultURLStorage().GetLongURL(shortURL); err == nil {
 		w.Header().Set("Location", longURL)
 		w.WriteHeader(http.StatusTemporaryRedirect)
 		return
 	}
 	http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest) // 404
-}
-
-func init() {
-	urlStorage = urlstorage.GetDefaultURLStorage()
 }
