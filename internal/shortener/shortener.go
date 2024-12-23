@@ -6,19 +6,20 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
 	"github.com/physicist2018/url-shortener-go/internal/urlstorage"
 )
 
 // RunServer starts the server
 func RunServer() error {
-	router := chi.NewRouter()
-	router.Use(middleware.AllowContentType("text/plain"))
-	router.Route("/", func(r chi.Router) {
-		r.Post("/", postRoute)
-		r.Get("/{shortURL}", getRoute)
-	})
+	router := http.NewServeMux()
+	//router.Use(middleware.AllowContentType("text/plain"))
+	//router.Route("/", func(r chi.Router) {
+	//	r.Post("/", postRoute)
+	//	r.Get("/{shortURL}", getRoute)
+	//})
+
+	router.HandleFunc("POST /", postRoute)
+	router.HandleFunc("GET /", getRoute)
 
 	return http.ListenAndServe(`:8080`, router)
 }
