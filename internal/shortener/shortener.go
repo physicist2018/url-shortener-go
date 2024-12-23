@@ -6,44 +6,24 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/middleware"
 	"github.com/physicist2018/url-shortener-go/internal/urlstorage"
 )
 
 // RunServer starts the server
 func RunServer() error {
-	router := http.NewServeMux()
-	//router.Use(middleware.AllowContentType("text/plain"))
-	//router.Route("/", func(r chi.Router) {
-	//	r.Post("/", postRoute)
-	//	r.Get("/{shortURL}", getRoute)
-	//})
+	router := chi.NewMux()
+	router.Use(middleware.AllowContentType("text/plain"))
+	router.Route("/", func(r chi.Router) {
+		r.Post("/", postRoute)
+		r.Get("/{shortURL}", getRoute)
+	})
 
-	router.HandleFunc("POST /", postRoute)
-	router.HandleFunc("GET /", getRoute)
+	//router.HandleFunc("POST /", postRoute)
+	//router.HandleFunc("GET /", getRoute)
 
 	return http.ListenAndServe(`:8080`, router)
-}
-
-// mainHandler is the handler for the main route
-// it examines method and call necessary callback function
-// when there is a post request to the / postRoute is called
-// when there is a get request to the / getRoute is called
-func mainHandler(w http.ResponseWriter, r *http.Request) {
-	// Срзу отсекаем другий тип контента кроме text/plain
-
-	// Post request must have Content-Type: text/plain
-	// URL equals to /
-	if (r.Method == http.MethodPost) &&
-		strings.HasPrefix(r.Header.Get("Content-Type"), "text/plain") &&
-		(r.URL.Path == "/") {
-		postRoute(w, r)
-
-	} else if r.Method == http.MethodGet {
-		getRoute(w, r)
-
-	} else {
-		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest) // 400
-	}
 }
 
 // postRoute is the handler for POST request
