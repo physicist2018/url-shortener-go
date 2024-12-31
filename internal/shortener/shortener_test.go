@@ -56,6 +56,33 @@ func Test_postRoute(t *testing.T) {
 				url:         "/bad",
 			},
 		},
+		{
+			name: "yandex.ru posted url", args: args{
+				storage:     urlstorage.GetDefaultURLStorage(),
+				contenttype: "text/plain",
+				content:     "",
+				want:        config.DefaultConfig.BaseURLServer + "/wSv9wq",
+				code:        400,
+				url:         "/",
+			},
+		},
+		{
+			name: "yandex.ru add already added url", args: args{
+				storage: &urlstorage.URLStorage{
+					Store: []urlstorage.URLItem{
+						{
+							LongURL:  "yandex.ru",
+							ShortURL: "wSv9wq",
+						},
+					},
+				},
+				contenttype: "text/plain",
+				content:     "yandex.ru",
+				want:        config.DefaultConfig.BaseURLServer + "/wSv9wq",
+				code:        201,
+				url:         "/",
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -110,6 +137,21 @@ func Test_getRoute(t *testing.T) {
 				url:  "http://localhost:8080/wSv9wq",
 			},
 		},
+		{
+			name: "yandex.ru short link not found", args: args{
+				storage: &urlstorage.URLStorage{
+					Store: []urlstorage.URLItem{
+						{
+							LongURL:  "yandex.ru",
+							ShortURL: "wSv9wq",
+						},
+					},
+				},
+				want: "yandex.ru",
+				code: http.StatusBadRequest,
+				url:  "http://localhost:8080/wSv9w1",
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -123,7 +165,7 @@ func Test_getRoute(t *testing.T) {
 				t.Errorf("getRoute() = %v, want %v", response.Code, tt.args.code)
 			}
 
-			if response.Header().Get("Location") != tt.args.want {
+			if (response.Code != http.StatusBadRequest) && (response.Header().Get("Location") != tt.args.want) {
 				t.Errorf("getRoute() Location is = %v, want: %v", response.Header(), tt.args.want)
 			}
 

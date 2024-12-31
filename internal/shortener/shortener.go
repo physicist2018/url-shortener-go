@@ -2,6 +2,7 @@ package shortener
 
 import (
 	"bufio"
+	"fmt"
 	"io"
 	"net/http"
 	urlurl "net/url"
@@ -19,11 +20,8 @@ func RunServer() error {
 	router.Use(middleware.AllowContentType("text/plain"))
 	router.Route("/", func(r chi.Router) {
 		r.Post("/", postRoute)
-		r.Get("/{shortURL}", getRoute)
+		r.Get("/*", getRoute)
 	})
-
-	//router.HandleFunc("POST /", postRoute)
-	//router.HandleFunc("GET /", getRoute)
 
 	return http.ListenAndServe(config.DefaultConfig.ServerAddr, router)
 }
@@ -55,7 +53,12 @@ func postRoute(w http.ResponseWriter, r *http.Request) {
 	if shortURL, err := urlstorage.GetDefaultURLStorage().FindShortURL(url); err == nil {
 		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusCreated)
-		w.Write([]byte("http://" + r.Host + "/" + shortURL))
+		completeShortURL, err := urlurl.JoinPath(config.DefaultConfig.BaseURLServer, shortURL)
+		if err != nil {
+			http.Error(w, "", http.StatusBadRequest) // 400
+			return
+		}
+		w.Write([]byte(completeShortURL))
 		return
 	}
 
@@ -75,6 +78,7 @@ func postRoute(w http.ResponseWriter, r *http.Request) {
 
 func getRoute(w http.ResponseWriter, r *http.Request) {
 	shortURL := r.URL.Path[1:]
+	fmt.Println(shortURL)
 	if longURL, err := urlstorage.GetDefaultURLStorage().GetLongURL(shortURL); err == nil {
 		w.Header().Set("Location", longURL)
 		w.WriteHeader(http.StatusTemporaryRedirect)
