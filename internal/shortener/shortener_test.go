@@ -6,10 +6,12 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/physicist2018/url-shortener-go/internal/config"
 	"github.com/physicist2018/url-shortener-go/internal/urlstorage"
 )
 
 func Test_postRoute(t *testing.T) {
+
 	type args struct {
 		storage     *urlstorage.URLStorage
 		contenttype string
@@ -27,7 +29,7 @@ func Test_postRoute(t *testing.T) {
 				storage:     urlstorage.GetDefaultURLStorage(),
 				contenttype: "text/plain",
 				content:     "yandex.ru",
-				want:        "http://example.com/wSv9wq",
+				want:        config.DefaultConfig.BaseURLServer + "/wSv9wq",
 				code:        201,
 				url:         "/",
 			},
@@ -38,7 +40,7 @@ func Test_postRoute(t *testing.T) {
 				storage:     urlstorage.GetDefaultURLStorage(),
 				contenttype: "text/html",
 				content:     "yandex.ru",
-				want:        "http://example.com/wSv9wq",
+				want:        config.DefaultConfig.BaseURLServer + "/wSv9wq",
 				code:        400,
 				url:         "/",
 			},
@@ -49,7 +51,7 @@ func Test_postRoute(t *testing.T) {
 				storage:     urlstorage.GetDefaultURLStorage(),
 				contenttype: "text/plain",
 				content:     "yandex.ru",
-				want:        "http://example.com/wSv9wq",
+				want:        config.DefaultConfig.BaseURLServer + "/wSv9wq",
 				code:        400,
 				url:         "/bad",
 			},

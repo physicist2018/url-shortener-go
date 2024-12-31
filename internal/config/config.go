@@ -12,7 +12,7 @@ var DefaultConfig Config
 func NewConfig() *Config {
 	return &Config{
 		ServerAddr:    "localhost:8080",
-		BaseURLServer: "http://localhost:8000/qsd54gFg",
+		BaseURLServer: "http://localhost:8000",
 	}
 }
 
@@ -25,5 +25,5 @@ func MakeConfig(serverAddr string, baseURLServer string) *Config {
 
 func init() {
 	flag.StringVar(&DefaultConfig.ServerAddr, "a", "localhost:8080", "адрес интерфейса, на котором запускать сервер")
-	flag.StringVar(&DefaultConfig.BaseURLServer, "b", "http://localhost:8080/aaa", "префикс короткого URL")
+	flag.StringVar(&DefaultConfig.BaseURLServer, "b", "http://localhost:8080", "префикс короткого URL")
 }
