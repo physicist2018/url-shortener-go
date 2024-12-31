@@ -11,7 +11,7 @@ import (
 )
 
 func Test_postRoute(t *testing.T) {
-
+	config.ConfigApp()
 	type args struct {
 		storage     *urlstorage.URLStorage
 		contenttype string
