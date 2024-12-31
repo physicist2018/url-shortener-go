@@ -1,6 +1,9 @@
 package config
 
-import "flag"
+import (
+	"flag"
+	"os"
+)
 
 type Config struct {
 	ServerAddr    string
@@ -23,7 +26,16 @@ func MakeConfig(serverAddr string, baseURLServer string) *Config {
 	}
 }
 
-func init() {
+func ConfigApp() *Config {
 	flag.StringVar(&DefaultConfig.ServerAddr, "a", "localhost:8080", "адрес интерфейса, на котором запускать сервер")
 	flag.StringVar(&DefaultConfig.BaseURLServer, "b", "http://localhost:8080", "префикс короткого URL")
+	flag.Parse()
+	if envServerAddr := os.Getenv("SERVER_ADDRESS"); envServerAddr != "" {
+		DefaultConfig.ServerAddr = envServerAddr
+	}
+
+	if envBaseURLServer := os.Getenv("BASE_URL"); envBaseURLServer != "" {
+		DefaultConfig.BaseURLServer = envBaseURLServer
+	}
+	return &DefaultConfig
 }
