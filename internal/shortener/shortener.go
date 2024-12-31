@@ -4,10 +4,12 @@ import (
 	"bufio"
 	"io"
 	"net/http"
+	urlurl "net/url"
 	"strings"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
+	"github.com/physicist2018/url-shortener-go/internal/config"
 	"github.com/physicist2018/url-shortener-go/internal/urlstorage"
 )
 
@@ -23,7 +25,7 @@ func RunServer() error {
 	//router.HandleFunc("POST /", postRoute)
 	//router.HandleFunc("GET /", getRoute)
 
-	return http.ListenAndServe(`:8080`, router)
+	return http.ListenAndServe(config.DefaultConfig.ServerAddr, router)
 }
 
 // postRoute is the handler for POST request
@@ -60,7 +62,12 @@ func postRoute(w http.ResponseWriter, r *http.Request) {
 	if shortURL, err := urlstorage.GetDefaultURLStorage().CreateShortURL(url); err == nil {
 		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusCreated)
-		w.Write([]byte("http://" + r.Host + "/" + shortURL))
+		completeShortURL, err := urlurl.JoinPath(config.DefaultConfig.BaseURLServer, shortURL)
+		if err != nil {
+			http.Error(w, "", http.StatusBadRequest) // 400
+			return
+		}
+		w.Write([]byte(completeShortURL))
 		return
 	}
 	http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest) // 400
