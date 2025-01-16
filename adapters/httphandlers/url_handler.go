@@ -1,0 +1,72 @@
+package httphandlers
+
+import (
+	"bufio"
+	"io"
+	"net/http"
+	"strings"
+
+	ports "github.com/physicist2018/url-shortener-go/internal/core/ports/urlports"
+)
+
+type URLHandler struct {
+	urlService ports.URLService
+}
+
+func NewURLHandler(service ports.URLService) *URLHandler {
+	return &URLHandler{
+		urlService: service,
+	}
+}
+
+// HandleGenerateShortURL is a function that handles the generation of a short URL.
+// It checks if the request path is correct, reads the original URL from the request body, trims it and checks if it's not empty.
+// If everything is correct, it generates a short URL using the urlService.
+// If there is an error during the process, it returns a 400 Bad Request error.
+func (h *URLHandler) HandleGenerateShortURL(w http.ResponseWriter, r *http.Request) {
+
+	if r.URL.Path != "/" {
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest) // 400
+		return
+	}
+
+	originalURL, err := bufio.NewReader(r.Body).ReadString('\n')
+
+	if (err != nil) && (err != io.EOF) {
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest) // 400
+		return
+	}
+
+	originalURL = strings.TrimSpace(originalURL)
+	if len(originalURL) == 0 {
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest) // 400
+		return
+	}
+
+	shortURL, err := h.urlService.GenerateShortURL(originalURL)
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest) // 400
+		return
+
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(shortURL.Short))
+
+}
+
+// HandleRedirect is a function that handles the redirection to the original URL.
+// It extracts the short URL from the request path, retrieves the original URL using the urlService,
+// and redirects the user to the original URL.
+// If there is an error during the process, it returns a 404 Not Found error.
+func (h *URLHandler) HandleRedirect(w http.ResponseWriter, r *http.Request) {
+	shortURL := r.URL.Path[1:]
+
+	url, err := h.urlService.GetOriginalURL(shortURL)
+	if err != nil {
+		http.Error(w, "URL not found", http.StatusNotFound)
+		return
+	}
+
+	http.Redirect(w, r, url.Original, http.StatusFound)
+}
