@@ -1,8 +1,6 @@
 package main
 
 import (
-	// "github.com/physicist2018/url-shortener-go/internal/config"
-	// "github.com/physicist2018/url-shortener-go/internal/shortener"
 	"log"
 	"net/http"
 
