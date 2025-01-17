@@ -43,7 +43,7 @@ func TestURLHandler_HandleGenerateShortURL(t *testing.T) {
 			method:             "POST",
 			url:                "/",
 			body:               "https://example.com",
-			expectedStatusCode: http.StatusOK,
+			expectedStatusCode: http.StatusCreated,
 			expectedResponse:   "http://localhost:8080/abc123",
 			mockShortURL: &urlmodels.URL{
 				Short:    "abc123",
