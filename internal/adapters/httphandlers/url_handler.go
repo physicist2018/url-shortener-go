@@ -50,7 +50,7 @@ func (h *URLHandler) HandleGenerateShortURL(w http.ResponseWriter, r *http.Reque
 
 	}
 
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusCreated)
 	w.Write([]byte(fullURL))
 
 }
