@@ -2,9 +2,9 @@ package httphandlers
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"strings"
 
@@ -29,20 +29,14 @@ func NewURLHandler(service ports.URLService, baseURL string) *URLHandler {
 // If there is an error during the process, it returns a 400 Bad Request error.
 func (h *URLHandler) HandleGenerateShortURL(w http.ResponseWriter, r *http.Request) {
 
-	if r.URL.Path != "/" {
-		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest) // 400
-		return
-	}
-
 	originalURL, err := bufio.NewReader(r.Body).ReadString('\n')
-	log.Println(originalURL)
-	if (err != nil) && (err != io.EOF) {
+
+	if errors.Is(err, nil) && !errors.Is(err, io.EOF) {
 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest) // 400
 		return
 	}
 
 	originalURL = strings.TrimSpace(originalURL)
-	log.Println(originalURL)
 	if len(originalURL) == 0 {
 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest) // 400
 		return
@@ -67,10 +61,9 @@ func (h *URLHandler) HandleGenerateShortURL(w http.ResponseWriter, r *http.Reque
 // If there is an error during the process, it returns a 404 Not Found error.
 func (h *URLHandler) HandleRedirect(w http.ResponseWriter, r *http.Request) {
 	shortURL := r.URL.String()
-	//shortURL := chi.URLParam(r, "shortURL")
 	url, err := h.urlService.GetOriginalURL(shortURL)
 	if err != nil {
-		http.Error(w, "URL not found", http.StatusNotFound)
+		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 		return
 	}
 

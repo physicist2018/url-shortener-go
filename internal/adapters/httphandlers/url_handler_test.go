@@ -24,14 +24,7 @@ func TestURLHandler_HandleGenerateShortURL(t *testing.T) {
 		mockGenerateError  error
 		mockShortURL       *urlmodels.URL
 	}{
-		{
-			name:               "Invalid path",
-			method:             "POST",
-			url:                "/invalid-path",
-			body:               "https://example.com",
-			expectedStatusCode: http.StatusBadRequest,
-			expectedResponse:   http.StatusText(http.StatusBadRequest) + "\n",
-		},
+
 		{
 			name:               "Valid URL but failed to generate short URL",
 			method:             "POST",
@@ -108,7 +101,7 @@ func TestURLHandler_HandleRedirect(t *testing.T) {
 			expectedStatusCode: http.StatusNotFound, // 404 Not Found
 			expectedLocation:   "",
 			mockGetURLResult:   &urlmodels.URL{},
-			mockGetURLError:    errors.New("URL not found"),
+			mockGetURLError:    errors.New("Not found"),
 		},
 	}
 
@@ -140,7 +133,7 @@ func TestURLHandler_HandleRedirect(t *testing.T) {
 
 			// Если URL не найден, проверяем, что в ответе ошибка "URL not found"
 			if tt.expectedStatusCode == http.StatusNotFound {
-				assert.Equal(t, "URL not found\n", w.Body.String())
+				assert.Equal(t, http.StatusText(http.StatusNotFound)+"\n", w.Body.String())
 			}
 		})
 	}
