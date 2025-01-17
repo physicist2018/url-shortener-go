@@ -66,6 +66,6 @@ func (h *URLHandler) HandleRedirect(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 		return
 	}
-
-	http.Redirect(w, r, url.Original, http.StatusFound)
+	w.Header().Set("Location", url.Original)
+	w.WriteHeader(http.StatusTemporaryRedirect)
 }
