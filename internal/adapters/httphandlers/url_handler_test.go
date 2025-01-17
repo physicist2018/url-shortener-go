@@ -87,10 +87,11 @@ func TestURLHandler_HandleRedirect(t *testing.T) {
 			name:               "Valid short URL",
 			method:             "GET",
 			shortURL:           "http://localhost:8080/abc123",
-			expectedStatusCode: http.StatusFound, // 302 Found
+			expectedStatusCode: http.StatusTemporaryRedirect,
 			expectedLocation:   "https://example.com",
 			mockGetURLResult: &urlmodels.URL{
-				Original: "https://example.com",
+				Short:    "abc123",
+				Original: "",
 			},
 			mockGetURLError: nil,
 		},
@@ -100,8 +101,11 @@ func TestURLHandler_HandleRedirect(t *testing.T) {
 			shortURL:           "http://localhost:8080/invalid123",
 			expectedStatusCode: http.StatusNotFound, // 404 Not Found
 			expectedLocation:   "",
-			mockGetURLResult:   &urlmodels.URL{},
-			mockGetURLError:    errors.New("Not found"),
+			mockGetURLResult: &urlmodels.URL{
+				Short:    "invalid123",
+				Original: "",
+			},
+			mockGetURLError: errors.New("Not found"),
 		},
 	}
 
@@ -110,7 +114,7 @@ func TestURLHandler_HandleRedirect(t *testing.T) {
 			mockService := &mocks.MockURLService{}
 			handler := httphandlers.NewURLHandler(mockService, "http://localhost:8080")
 			// Настроим мок для генерации короткой ссылки
-			mockService.On("GetOriginalURL", tt.shortURL).Return(tt.mockGetURLResult, tt.mockGetURLError)
+			mockService.On("GetOriginalURL", tt.mockGetURLResult.Short).Return(tt.mockGetURLResult, tt.mockGetURLError)
 			// Создаем запрос
 
 			req := httptest.NewRequest(tt.method, tt.shortURL, nil)

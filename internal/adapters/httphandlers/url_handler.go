@@ -60,7 +60,8 @@ func (h *URLHandler) HandleGenerateShortURL(w http.ResponseWriter, r *http.Reque
 // and redirects the user to the original URL.
 // If there is an error during the process, it returns a 404 Not Found error.
 func (h *URLHandler) HandleRedirect(w http.ResponseWriter, r *http.Request) {
-	shortURL := r.URL.String()
+	shortURLparts := strings.Split(r.URL.String(), "/")
+	shortURL := shortURLparts[len(shortURLparts)-1]
 	url, err := h.urlService.GetOriginalURL(shortURL)
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
