@@ -1,12 +1,15 @@
 package url
 
 import (
+	"sync"
+
 	"github.com/physicist2018/url-shortener-go/internal/core/models/urlmodels"
 	"github.com/physicist2018/url-shortener-go/internal/core/ports/randomstring"
 	ports "github.com/physicist2018/url-shortener-go/internal/core/repository/url"
 )
 
 type URLService struct {
+	mu                    sync.Mutex
 	randomStringGenerator randomstring.RandomStringGenerator
 	urlRepo               ports.URLRepository
 }
@@ -20,8 +23,10 @@ func NewURLService(urlRepo ports.URLRepository, rndStringGenerator randomstring.
 
 // Создаем короткую ссылку
 func (s *URLService) GenerateShortURL(originalURL string) (urlmodels.URL, error) {
-
 	var shortURL string
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	for {
 		shortURL = s.randomStringGenerator.GenerateRandomString()
 		_, err := s.urlRepo.FindByShort(shortURL)

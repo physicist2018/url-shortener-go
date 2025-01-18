@@ -1,8 +1,6 @@
 package httphandlers
 
 import (
-	"bufio"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -29,14 +27,15 @@ func NewURLHandler(service ports.URLService, baseURL string) *URLHandler {
 // If there is an error during the process, it returns a 400 Bad Request error.
 func (h *URLHandler) HandleGenerateShortURL(w http.ResponseWriter, r *http.Request) {
 
-	originalURL, err := bufio.NewReader(r.Body).ReadString('\n')
+	originalURLbytes, err := io.ReadAll(r.Body)
+	//bufio.NewReader(r.Body).ReadString('\n')
 
-	if errors.Is(err, nil) || (err != io.EOF) {
+	if err != nil {
 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest) // 400
 		return
 	}
 
-	originalURL = strings.TrimSpace(originalURL)
+	originalURL := string(originalURLbytes)
 	if len(originalURL) == 0 {
 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest) // 400
 		return
