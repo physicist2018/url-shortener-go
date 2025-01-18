@@ -31,7 +31,7 @@ func (h *URLHandler) HandleGenerateShortURL(w http.ResponseWriter, r *http.Reque
 
 	originalURL, err := bufio.NewReader(r.Body).ReadString('\n')
 
-	if errors.Is(err, nil) && !errors.Is(err, io.EOF) {
+	if errors.Is(err, nil) || (err != io.EOF) {
 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest) // 400
 		return
 	}
@@ -41,14 +41,14 @@ func (h *URLHandler) HandleGenerateShortURL(w http.ResponseWriter, r *http.Reque
 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest) // 400
 		return
 	}
-	shortURL, err := h.urlService.GenerateShortURL(originalURL)
-	fullURL := fmt.Sprintf("%s/%s", h.baseURL, shortURL.Short)
+	urlModel, err := h.urlService.GenerateShortURL(originalURL)
 
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest) // 400
 		return
-
 	}
+
+	fullURL := fmt.Sprintf("%s/%s", h.baseURL, urlModel.Short)
 
 	w.WriteHeader(http.StatusCreated)
 	w.Write([]byte(fullURL))

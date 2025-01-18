@@ -10,35 +10,35 @@ import (
 
 type URLRepositoryMap struct {
 	mutex sync.RWMutex
-	urls  map[string]*urlmodels.URL
+	urls  map[string]urlmodels.URL
 }
 
 func NewURLRepositoryMap() *URLRepositoryMap {
 	return &URLRepositoryMap{
-		urls: make(map[string]*urlmodels.URL),
+		urls: make(map[string]urlmodels.URL),
 	}
 }
 
 // Реализуем интерфеййс
-func (r *URLRepositoryMap) Save(url *urlmodels.URL) (*urlmodels.URL, error) {
+func (r *URLRepositoryMap) Save(url urlmodels.URL) (urlmodels.URL, error) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
 	if _, exists := r.urls[url.Short]; exists {
-		return nil, errors.New("короткая ссылка уже есть")
+		return urlmodels.URL{}, errors.New("короткая ссылка уже есть")
 	}
 
 	r.urls[url.Short] = url
 	return url, nil
 }
 
-func (r *URLRepositoryMap) FindByShort(shortURL string) (*urlmodels.URL, error) {
+func (r *URLRepositoryMap) FindByShort(shortURL string) (urlmodels.URL, error) {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
 
 	url, exists := r.urls[shortURL]
 	if !exists {
-		return nil, errors.New("короткая ссылка не найдена")
+		return urlmodels.URL{}, errors.New("короткая ссылка не найдена")
 	}
 
 	return url, nil

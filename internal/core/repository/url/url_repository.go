@@ -6,6 +6,6 @@ import (
 
 // URLRepository описывает репозиторий для хранения URL
 type URLRepository interface {
-	Save(url *urlmodels.URL) (*urlmodels.URL, error)
-	FindByShort(shortURL string) (*urlmodels.URL, error)
+	Save(url urlmodels.URL) (urlmodels.URL, error)
+	FindByShort(shortURL string) (urlmodels.URL, error)
 }

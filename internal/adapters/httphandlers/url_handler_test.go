@@ -22,7 +22,7 @@ func TestURLHandler_HandleGenerateShortURL(t *testing.T) {
 		expectedStatusCode int
 		expectedResponse   string
 		mockGenerateError  error
-		mockShortURL       *urlmodels.URL
+		mockShortURL       urlmodels.URL
 	}{
 
 		{
@@ -33,7 +33,7 @@ func TestURLHandler_HandleGenerateShortURL(t *testing.T) {
 			expectedStatusCode: http.StatusBadRequest,
 			expectedResponse:   http.StatusText(http.StatusBadRequest) + "\n",
 			mockGenerateError:  errors.New("failed to generate short URL"),
-			mockShortURL: &urlmodels.URL{
+			mockShortURL: urlmodels.URL{
 				Short:    "/",
 				Original: "https://example.com",
 			},
@@ -45,7 +45,7 @@ func TestURLHandler_HandleGenerateShortURL(t *testing.T) {
 			body:               "https://example.com",
 			expectedStatusCode: http.StatusCreated,
 			expectedResponse:   "http://localhost:8080/abc123",
-			mockShortURL: &urlmodels.URL{
+			mockShortURL: urlmodels.URL{
 				Short:    "abc123",
 				Original: "https://example.com",
 			},
@@ -80,7 +80,7 @@ func TestURLHandler_HandleRedirect(t *testing.T) {
 		shortURL           string
 		expectedStatusCode int
 		expectedLocation   string
-		mockGetURLResult   *urlmodels.URL
+		mockGetURLResult   urlmodels.URL
 		mockGetURLError    error
 	}{
 		{
@@ -89,7 +89,7 @@ func TestURLHandler_HandleRedirect(t *testing.T) {
 			shortURL:           "http://localhost:8080/abc123",
 			expectedStatusCode: http.StatusTemporaryRedirect,
 			expectedLocation:   "https://example.com",
-			mockGetURLResult: &urlmodels.URL{
+			mockGetURLResult: urlmodels.URL{
 				Short:    "abc123",
 				Original: "",
 			},
@@ -101,7 +101,7 @@ func TestURLHandler_HandleRedirect(t *testing.T) {
 			shortURL:           "http://localhost:8080/invalid123",
 			expectedStatusCode: http.StatusNotFound, // 404 Not Found
 			expectedLocation:   "",
-			mockGetURLResult: &urlmodels.URL{
+			mockGetURLResult: urlmodels.URL{
 				Short:    "invalid123",
 				Original: "",
 			},
