@@ -13,7 +13,9 @@ import (
 	"github.com/physicist2018/url-shortener-go/internal/adapters/memory"
 	"github.com/physicist2018/url-shortener-go/internal/config"
 	"github.com/physicist2018/url-shortener-go/internal/core/services/url"
+	"github.com/physicist2018/url-shortener-go/internal/httplogger"
 	"github.com/physicist2018/url-shortener-go/pkg/utils"
+	"go.uber.org/zap"
 )
 
 const maxShortURLLength = 6
@@ -22,6 +24,15 @@ func main() {
 	configuration := config.MakeConfig()
 	configuration.Parse()
 
+	logger, err := zap.NewDevelopment()
+	if err != nil {
+		panic(err)
+	}
+
+	defer logger.Sync()
+
+	sugar := logger.Sugar()
+
 	randomStringGenerator := utils.NewRandomString(maxShortURLLength, rand.New(rand.NewSource(time.Now().UnixNano())))
 	urlRepo := memory.NewURLRepositoryMap()
 	urlService := url.NewURLService(urlRepo, randomStringGenerator)
@@ -29,6 +40,7 @@ func main() {
 
 	r := chi.NewRouter()
 	r.Use(middleware.AllowContentType("text/plain"))
+	r.Use(httplogger.LoggerMiddleware(sugar))
 	r.Post("/", urlHandler.HandleGenerateShortURL)
 	r.Get("/{shortURL}", urlHandler.HandleRedirect)
 
