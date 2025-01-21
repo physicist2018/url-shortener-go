@@ -13,7 +13,8 @@ import (
 	"github.com/physicist2018/url-shortener-go/internal/adapters/memory"
 	"github.com/physicist2018/url-shortener-go/internal/config"
 	"github.com/physicist2018/url-shortener-go/internal/core/services/url"
-	"github.com/physicist2018/url-shortener-go/internal/httplogger"
+	"github.com/physicist2018/url-shortener-go/internal/middlewares/compressor"
+	"github.com/physicist2018/url-shortener-go/internal/middlewares/httplogger"
 	"github.com/physicist2018/url-shortener-go/pkg/utils"
 	"go.uber.org/zap"
 )
@@ -40,6 +41,7 @@ func main() {
 
 	r := chi.NewRouter()
 	r.Use(middleware.AllowContentType("text/plain", "application/json"))
+	r.Use(compressor.CompressionMiddleware())
 	r.Use(httplogger.LoggerMiddleware(sugar))
 	r.Post("/", urlHandler.HandleGenerateShortURL)
 	r.Post("/api/shorten", urlHandler.HandleGenerateShortURLJson)
