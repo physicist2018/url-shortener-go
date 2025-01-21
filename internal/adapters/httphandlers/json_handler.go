@@ -17,10 +17,10 @@ type (
 )
 
 func (h *URLHandler) HandleGenerateShortURLJson(w http.ResponseWriter, r *http.Request) {
-	if r.Header.Get("Content-Type") != "application/json" { // не JSON
-		http.Error(w, "Content-Type must be application/json", http.StatusBadRequest)
-		return
-	}
+	// if r.Header.Get("Content-Type") != "application/json" { // не JSON
+	// 	http.Error(w, "Content-Type must be application/json", http.StatusBadRequest)
+	// 	return
+	// }
 	// Парсим тело запроса
 	var reqBody RequestBody
 	err := json.NewDecoder(r.Body).Decode(&reqBody)
