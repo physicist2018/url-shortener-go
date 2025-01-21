@@ -36,7 +36,11 @@ func CompressionMiddleware() func(http.Handler) http.Handler {
 			// Перехватываем ответ для сжатия
 			if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
 				w.Header().Set("Content-Encoding", "gzip")
-				gzipWriter := gzip.NewWriter(w)
+				gzipWriter, err := gzip.NewWriterLevel(w, gzip.BestSpeed)
+				if err != nil {
+					http.Error(w, "Failed to zip data", http.StatusBadRequest)
+					return
+				}
 				defer gzipWriter.Close()
 				gzipResponseWriter := &GzipResponseWriter{Writer: gzipWriter, ResponseWriter: w}
 				next.ServeHTTP(gzipResponseWriter, r)
