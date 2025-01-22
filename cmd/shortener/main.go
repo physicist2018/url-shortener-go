@@ -1,6 +1,7 @@
 package main
 
 import (
+	"compress/gzip"
 	"log"
 	"net/http"
 	"time"
@@ -40,7 +41,7 @@ func main() {
 	urlHandler := httphandlers.NewURLHandler(urlService, configuration.BaseURLServer)
 
 	r := chi.NewRouter()
-	r.Use(compressor.CompressionMiddleware())
+	r.Use(compressor.CompressionMiddleware(gzip.BestCompression))
 	r.Use(middleware.AllowContentType("text/plain", "application/json", "text/html", "application/x-gzip"))
 	r.Use(httplogger.LoggerMiddleware(sugar))
 	r.Post("/", urlHandler.HandleGenerateShortURL)

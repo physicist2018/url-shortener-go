@@ -17,7 +17,7 @@ func (w *GzipResponseWriter) Write(b []byte) (int, error) {
 	return w.Writer.Write(b)
 }
 
-func CompressionMiddleware() func(http.Handler) http.Handler {
+func CompressionMiddleware(compressionLevel int) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -36,7 +36,7 @@ func CompressionMiddleware() func(http.Handler) http.Handler {
 			// Перехватываем ответ для сжатия
 			if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
 				w.Header().Set("Content-Encoding", "gzip")
-				gzipWriter, err := gzip.NewWriterLevel(w, gzip.BestSpeed)
+				gzipWriter, err := gzip.NewWriterLevel(w, compressionLevel)
 				if err != nil {
 					http.Error(w, "Failed to zip data", http.StatusBadRequest)
 					return
