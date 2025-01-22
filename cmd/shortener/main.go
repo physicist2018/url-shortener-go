@@ -43,7 +43,7 @@ func main() {
 	//r.Use(compressor.CompressionMiddleware())
 	r.Use(middleware.AllowContentType("text/plain", "application/json", "text/html", "application/x-gzip"))
 	r.Use(httplogger.LoggerMiddleware(sugar))
-	r.Post("/", urlHandler.HandleGenerateShortURL)
+	r.Post("/", compressor.GzipMiddleware(urlHandler.HandleGenerateShortURL))
 	r.Post("/api/shorten", compressor.GzipMiddleware(urlHandler.HandleGenerateShortURLJson))
 	r.Get("/{shortURL}", urlHandler.HandleRedirect)
 
