@@ -3,6 +3,7 @@ package compressor
 import (
 	"compress/gzip"
 	"io"
+	"log"
 	"net/http"
 	"strings"
 )
@@ -15,6 +16,50 @@ func isGzipCompressed(contentType string, contentEncoding string) bool {
 // Функция для проверки, поддерживает ли клиент сжатие
 func clientSupportsGzip(acceptEncoding string) bool {
 	return strings.Contains(acceptEncoding, "gzip")
+}
+
+func GZipMiddleware(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ow := w
+
+		accessContentTypes := map[string]bool{
+			"application/json": true,
+			"text/html":        true,
+		}
+
+		contentType := r.Header.Get("content-type")
+		_, accessContentType := accessContentTypes[contentType]
+
+		if accessContentType {
+			log.Println("accessContentTypes")
+			acceptEncoding := r.Header.Get("Accept-Encoding")
+			isSupportGZip := strings.Contains(acceptEncoding, "gzip")
+			if isSupportGZip {
+				log.Println("Accept-Encoding run")
+
+				cw := newCompressWriter(w)
+				ow = cw
+				defer cw.Close()
+			}
+
+			contentEncoding := r.Header.Get("Content-Encoding")
+			isSendGZip := strings.Contains(contentEncoding, "gzip")
+			if isSendGZip {
+				log.Println("Content-Encoding run")
+
+				cr, err := newCompressReader(r.Body)
+				if err != nil {
+					w.WriteHeader(http.StatusInternalServerError)
+					return
+				}
+
+				r.Body = cr
+				defer cr.Close()
+			}
+		}
+
+		h.ServeHTTP(ow, r)
+	})
 }
 
 // Middleware для обработки сжатых запросов и сжатия ответов
