@@ -26,6 +26,7 @@ import (
 )
 
 const maxShortURLLength = 6
+const maxShutdownTime = 5
 
 func main() {
 	configuration := config.MakeConfig()
@@ -43,6 +44,12 @@ func main() {
 	randomStringGenerator := utils.NewRandomString(maxShortURLLength, rand.New(rand.NewSource(time.Now().UnixNano())))
 
 	urlRepo := memory.NewURLRepositoryMap()
+
+	sugar.Info("Загрузка ссылок из файла... ", configuration.FileStoragePath)
+	if err = urlRepo.RestoreFromFile(configuration.FileStoragePath); err != nil {
+		sugar.Error("При восстановлении хранилище из файла на диске возникла ошибка:", err)
+	}
+
 	urlService := url.NewURLService(urlRepo, randomStringGenerator)
 	urlHandler := httphandlers.NewURLHandler(urlService, configuration.BaseURLServer)
 
@@ -58,6 +65,7 @@ func main() {
 	r.Post("/api/shorten", urlHandler.HandleGenerateShortURLJson)
 	r.Get("/{shortURL}", urlHandler.HandleRedirect)
 
+	// Создаем сервер
 	server := http.Server{
 		Addr:    configuration.ServerAddr,
 		Handler: r,
@@ -87,7 +95,7 @@ func main() {
 	fmt.Println("\nПолучен сигнал завершения, выключаем сервер...")
 
 	// Создаем контекст с таймаутом для корректного завершения сервера
-	shutdownCtx, cancelShutdown := context.WithTimeout(ctx, 5*time.Second)
+	shutdownCtx, cancelShutdown := context.WithTimeout(ctx, maxShutdownTime*time.Second)
 	defer cancelShutdown()
 
 	// Закрытие HTTP-сервера
@@ -95,8 +103,13 @@ func main() {
 		fmt.Println("Ошибка при выключении сервера:", err)
 	}
 
-	// Ожидаем завершения всех горутин
+	// Ожидаем завершения всех горутин (по факту, к нас в wg она одна)
 	wg.Wait()
 
 	fmt.Println("Сервер адекватно выключен.")
+
+	sugar.Info("Сохраняем базу ссылок на диск в файл ", configuration.FileStoragePath)
+	if err = urlRepo.DumpToFile(configuration.FileStoragePath); err != nil {
+		sugar.Error("При записи на диск возникла ошибка: ", err)
+	}
 }

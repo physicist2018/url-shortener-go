@@ -1,14 +1,19 @@
 package memory
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
+	"os"
 
 	"sync"
 
 	"github.com/physicist2018/url-shortener-go/internal/core/models/urlmodels"
+	ports "github.com/physicist2018/url-shortener-go/internal/core/repository/url"
 )
 
 type URLRepositoryMap struct {
+	ports.URLRepository
 	mutex sync.RWMutex
 	urls  map[string]urlmodels.URL
 }
@@ -42,4 +47,50 @@ func (r *URLRepositoryMap) FindByShort(shortURL string) (urlmodels.URL, error) {
 	}
 
 	return url, nil
+}
+
+func (r *URLRepositoryMap) DumpToFile(fullFilePath string) error {
+	file, err := os.Create(fullFilePath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	for _, url := range r.urls {
+		encoder := json.NewEncoder(file)
+		encoder.SetIndent("", "")
+		if err := encoder.Encode(url); err != nil {
+			return fmt.Errorf("error encoding data to json: %w", err)
+		}
+	}
+
+	return nil
+}
+
+func (r *URLRepositoryMap) RestoreFromFile(fullFilePath string) error {
+	// Открываем файл для чтения
+	file, err := os.Open(fullFilePath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	// Чтение файла построчно
+	decoder := json.NewDecoder(file)
+	for {
+		var url urlmodels.URL
+		// Декодируем одну строку в структуру
+		if err := decoder.Decode(&url); err != nil {
+			// Если достигнут конец файла (EOF), выходим из цикла
+			if err.Error() == "EOF" {
+				break
+			}
+			// В случае другой ошибки
+			return fmt.Errorf("error decoding json: %w", err)
+		}
+		// Добавляем URL в срез
+		r.urls[url.Short] = url
+	}
+
+	return nil
 }
