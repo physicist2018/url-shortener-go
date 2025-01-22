@@ -22,40 +22,30 @@ func GZipMiddleware(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ow := w
 
-		accessContentTypes := map[string]bool{
-			"application/json": true,
-			"text/html":        true,
+		log.Println("accessContentTypes")
+		acceptEncoding := r.Header.Get("Accept-Encoding")
+		isSupportGZip := strings.Contains(acceptEncoding, "gzip")
+		if isSupportGZip {
+			log.Println("Accept-Encoding run")
+
+			cw := newCompressWriter(w)
+			ow = cw
+			defer cw.Close()
 		}
 
-		contentType := r.Header.Get("content-type")
-		_, accessContentType := accessContentTypes[contentType]
+		contentEncoding := r.Header.Get("Content-Encoding")
+		isSendGZip := strings.Contains(contentEncoding, "gzip")
+		if isSendGZip {
+			log.Println("Content-Encoding run")
 
-		if accessContentType {
-			log.Println("accessContentTypes")
-			acceptEncoding := r.Header.Get("Accept-Encoding")
-			isSupportGZip := strings.Contains(acceptEncoding, "gzip")
-			if isSupportGZip {
-				log.Println("Accept-Encoding run")
-
-				cw := newCompressWriter(w)
-				ow = cw
-				defer cw.Close()
+			cr, err := newCompressReader(r.Body)
+			if err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				return
 			}
 
-			contentEncoding := r.Header.Get("Content-Encoding")
-			isSendGZip := strings.Contains(contentEncoding, "gzip")
-			if isSendGZip {
-				log.Println("Content-Encoding run")
-
-				cr, err := newCompressReader(r.Body)
-				if err != nil {
-					w.WriteHeader(http.StatusInternalServerError)
-					return
-				}
-
-				r.Body = cr
-				defer cr.Close()
-			}
+			r.Body = cr
+			defer cr.Close()
 		}
 
 		h.ServeHTTP(ow, r)
