@@ -5,6 +5,8 @@ import (
 	"io"
 	"net/http"
 	"strings"
+
+	"github.com/pingcap/log"
 )
 
 // func shouldCompress(contentType string) bool {
@@ -103,6 +105,7 @@ func GzipMiddleware(h http.HandlerFunc) http.HandlerFunc {
 
 		// Проверяем Content-Type ответа
 		contentType := r.Header.Get("Content-Type")
+		log.Debug(contentType)
 		shouldCompressResponse := shouldCompress(contentType)
 
 		// Если клиент поддерживает gzip и Content-Type допустим для сжатия
