@@ -40,11 +40,11 @@ func main() {
 	urlHandler := httphandlers.NewURLHandler(urlService, configuration.BaseURLServer)
 
 	r := chi.NewRouter()
-	//r.Use(compressor.CompressionMiddleware())
+	r.Use(compressor.CompressionMiddleware())
 	r.Use(middleware.AllowContentType("text/plain", "application/json", "text/html", "application/x-gzip"))
 	r.Use(httplogger.LoggerMiddleware(sugar))
-	r.Post("/", compressor.GzipMiddleware(urlHandler.HandleGenerateShortURL))
-	r.Post("/api/shorten", compressor.GzipMiddleware(urlHandler.HandleGenerateShortURLJson))
+	r.Post("/", urlHandler.HandleGenerateShortURL)
+	r.Post("/api/shorten", urlHandler.HandleGenerateShortURLJson)
 	r.Get("/{shortURL}", urlHandler.HandleRedirect)
 
 	if err := http.ListenAndServe(configuration.ServerAddr, r); err != nil {
