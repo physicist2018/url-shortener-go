@@ -9,11 +9,9 @@ import (
 	"sync"
 
 	"github.com/physicist2018/url-shortener-go/internal/core/models/urlmodels"
-	ports "github.com/physicist2018/url-shortener-go/internal/core/repository/url"
 )
 
 type URLRepositoryMap struct {
-	ports.URLRepository
 	mutex sync.RWMutex
 	urls  map[string]urlmodels.URL
 }
@@ -56,9 +54,9 @@ func (r *URLRepositoryMap) DumpToFile(fullFilePath string) error {
 	}
 	defer file.Close()
 
+	encoder := json.NewEncoder(file)
+	encoder.SetIndent("", "")
 	for _, url := range r.urls {
-		encoder := json.NewEncoder(file)
-		encoder.SetIndent("", "")
 		if err := encoder.Encode(url); err != nil {
 			return fmt.Errorf("error encoding data to json: %w", err)
 		}

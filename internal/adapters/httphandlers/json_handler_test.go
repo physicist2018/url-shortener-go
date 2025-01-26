@@ -12,34 +12,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// func TestURLHandler_HandleGenerateShortURLJson(t *testing.T) {
-// 	// Создаем валидный запрос с корректным JSON
-// 	requestBody := []byte(`{"url": "https://example.com"}`)
-// 	req, err := http.NewRequest(http.MethodPost, "/api/shorten", bytes.NewBuffer(requestBody))
-// 	if err != nil {
-// 		t.Fatalf("Could not create request: %v", err)
-// 	}
-// 	req.Header.Set("Content-Type", "application/json")
-
-// 	// Создаем ResponseRecorder для фиксации ответа
-// 	rr := httptest.NewRecorder()
-
-// 	// Вызываем обработчик
-// 	handler := http.HandlerFunc(HandleGe)
-// 	handler.ServeHTTP(rr, req)
-
-// 	// Проверяем код ответа
-// 	if status := rr.Code; status != http.StatusOK {
-// 		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusOK)
-// 	}
-
-// 	// Проверяем содержимое ответа
-// 	expected := `{"result":"Received URL: https://example.com"}`
-// 	if rr.Body.String() != expected {
-// 		t.Errorf("Handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
-// 	}
-// }
-
 func TestURLHandler_HandleGenerateShortURLJson(t *testing.T) {
 	tests := []struct {
 		name               string

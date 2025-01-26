@@ -47,7 +47,7 @@ func main() {
 
 	sugar.Info("Загрузка ссылок из файла... ", configuration.FileStoragePath)
 	if err = urlRepo.RestoreFromFile(configuration.FileStoragePath); err != nil {
-		sugar.Error("При восстановлении хранилище из файла на диске возникла ошибка:", err)
+		sugar.Panicf("При восстановлении хранилище из файла на диске возникла ошибка:", err)
 	}
 
 	urlService := url.NewURLService(urlRepo, randomStringGenerator)
@@ -56,9 +56,14 @@ func main() {
 	r := chi.NewRouter()
 
 	// Устанавливаем необходимые middlwares
-	r.Use(compressor.CompressionMiddleware(gzip.BestCompression))
+	//r.Use(compressor.CompressionMiddleware(gzip.BestSpeed))
+	r.Use(compressor.RequestDecompressionMiddleware)
+	r.Use(compressor.ResponseCompressionMiddleware(gzip.BestCompression))
+	// Устанавливаем допустимые типв контента
+	// application/x-gzip без него тесты не проходят
 	r.Use(middleware.AllowContentType("text/plain", "application/json", "text/html", "application/x-gzip"))
 	r.Use(httplogger.LoggerMiddleware(sugar))
+	r.Use(middleware.Recoverer)
 
 	// Определяем наши эндпоинты
 	r.Post("/", urlHandler.HandleGenerateShortURL)

@@ -34,8 +34,9 @@ func CompressionMiddleware(compressionLevel int) func(http.Handler) http.Handler
 					http.Error(w, "Failed to decompress request body", http.StatusBadRequest)
 					return
 				}
-				defer reader.Close()
-				r.Body = io.NopCloser(reader)
+				//defer reader.Close()
+				//r.Body = io.NopCloser(reader)
+				r.Body = reader
 			}
 
 			// Перехватываем ответ для сжатия
@@ -51,6 +52,47 @@ func CompressionMiddleware(compressionLevel int) func(http.Handler) http.Handler
 				next.ServeHTTP(gzipResponseWriter, r)
 			} else {
 				// Если клиент не поддерживает сжатие, отправляем обычный ответ
+				next.ServeHTTP(w, r)
+			}
+		})
+	}
+}
+
+func RequestDecompressionMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Проверяем, сжат ли запрос
+		if strings.Contains(r.Header.Get("Content-Encoding"), "gzip") {
+			// Распаковываем тело запроса
+			reader, err := gzip.NewReader(r.Body)
+			if err != nil {
+				http.Error(w, "Failed to decompress request body", http.StatusBadRequest)
+				return
+			}
+			//defer reader.Close()
+			//r.Body = io.NopCloser(reader)
+			r.Body = reader
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+func ResponseCompressionMiddleware(compressionLevel int) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+			// Перехватываем ответ для сжатия
+			if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+				w.Header().Set("Content-Encoding", "gzip")
+				gzipWriter, err := gzip.NewWriterLevel(w, compressionLevel)
+				if err != nil {
+					http.Error(w, "Failed to zip data", http.StatusBadRequest)
+					return
+				}
+				defer gzipWriter.Close()
+				gzipResponseWriter := &GzipResponseWriter{Writer: gzipWriter, ResponseWriter: w}
+				next.ServeHTTP(gzipResponseWriter, r)
+			} else {
 				next.ServeHTTP(w, r)
 			}
 		})
