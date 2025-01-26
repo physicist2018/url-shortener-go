@@ -47,7 +47,8 @@ func main() {
 
 	sugar.Info("Загрузка ссылок из файла... ", configuration.FileStoragePath)
 	if err = urlRepo.RestoreFromFile(configuration.FileStoragePath); err != nil {
-		sugar.Panicf("При восстановлении хранилище из файла на диске возникла ошибка:", err)
+		sugar.Errorf("При восстановлении хранилище из файла на диске возникла ошибка:", err)
+		// sugar.Errorf("")
 	}
 
 	urlService := url.NewURLService(urlRepo, randomStringGenerator)
