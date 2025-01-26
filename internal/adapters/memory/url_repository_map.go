@@ -11,6 +11,9 @@ import (
 	"github.com/physicist2018/url-shortener-go/internal/core/models/urlmodels"
 )
 
+var ErrorOpeningFile = errors.New("ошибка открытия файла")
+var ErrorCreatingFile = errors.New("ошибка создания файла")
+
 type URLRepositoryMap struct {
 	mutex sync.RWMutex
 	urls  map[string]urlmodels.URL
@@ -50,7 +53,7 @@ func (r *URLRepositoryMap) FindByShort(shortURL string) (urlmodels.URL, error) {
 func (r *URLRepositoryMap) DumpToFile(fullFilePath string) error {
 	file, err := os.Create(fullFilePath)
 	if err != nil {
-		return err
+		return ErrorCreatingFile
 	}
 	defer file.Close()
 
@@ -69,7 +72,7 @@ func (r *URLRepositoryMap) RestoreFromFile(fullFilePath string) error {
 	// Открываем файл для чтения
 	file, err := os.Open(fullFilePath)
 	if err != nil {
-		return err
+		return ErrorOpeningFile
 	}
 	defer file.Close()
 

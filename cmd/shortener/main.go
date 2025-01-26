@@ -3,6 +3,7 @@ package main
 import (
 	"compress/gzip"
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -47,8 +48,10 @@ func main() {
 
 	sugar.Info("Загрузка ссылок из файла... ", configuration.FileStoragePath)
 	if err = urlRepo.RestoreFromFile(configuration.FileStoragePath); err != nil {
-		sugar.Errorf("При восстановлении хранилище из файла на диске возникла ошибка:", err)
-		// sugar.Errorf("")
+		if !errors.Is(err, memory.ErrorOpeningFile) {
+			sugar.Panic(err)
+		}
+		sugar.Infof("При восстановлении хранилища из файла оный не обнаружен (будет создан при закритии): %s", err.Error())
 	}
 
 	urlService := url.NewURLService(urlRepo, randomStringGenerator)
