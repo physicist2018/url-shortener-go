@@ -26,14 +26,12 @@ import (
 	"go.uber.org/zap"
 )
 
-const maxShortURLLength = 6
-const maxShutdownTime = 5
-
 func main() {
 	configuration := config.MakeConfig()
 	configuration.Parse()
 
 	logger, err := zap.NewDevelopment()
+	// Ошибка инициализации логера
 	if err != nil {
 		panic(err)
 	}
@@ -42,13 +40,15 @@ func main() {
 
 	sugar := logger.Sugar()
 
-	randomStringGenerator := utils.NewRandomString(maxShortURLLength, rand.New(rand.NewSource(time.Now().UnixNano())))
+	randomStringGenerator := utils.NewRandomString(configuration.MaxShortURLLength,
+		rand.New(rand.NewSource(time.Now().UnixNano())),
+	)
 
-	urlRepo := memory.NewURLRepositoryMap()
+	urlRepo := memory.NewURLRepositoryMap(configuration.FileStoragePath)
 
-	sugar.Info("Загрузка ссылок из файла... ", configuration.FileStoragePath)
-	if err = urlRepo.RestoreFromFile(configuration.FileStoragePath); err != nil {
-		if !errors.Is(err, memory.ErrorOpeningFile) {
+	sugar.Infof("Загрузка ссылок из файла %s... ", configuration.FileStoragePath)
+	if err = urlRepo.RestoreFromFile(); err != nil {
+		if !errors.Is(err, memory.ErrorOpeningFileWhenRestore) {
 			sugar.Panic(err)
 		}
 		sugar.Infof("При восстановлении хранилища из файла оный не обнаружен (будет создан при закритии): %s", err.Error())
@@ -58,9 +58,7 @@ func main() {
 	urlHandler := httphandlers.NewURLHandler(urlService, configuration.BaseURLServer)
 
 	r := chi.NewRouter()
-
 	// Устанавливаем необходимые middlwares
-	//r.Use(compressor.CompressionMiddleware(gzip.BestSpeed))
 	r.Use(compressor.RequestDecompressionMiddleware)
 	r.Use(compressor.ResponseCompressionMiddleware(gzip.BestCompression))
 	// Устанавливаем допустимые типв контента
@@ -104,7 +102,8 @@ func main() {
 	fmt.Println("\nПолучен сигнал завершения, выключаем сервер...")
 
 	// Создаем контекст с таймаутом для корректного завершения сервера
-	shutdownCtx, cancelShutdown := context.WithTimeout(ctx, maxShutdownTime*time.Second)
+	shutdownCtx, cancelShutdown := context.WithTimeout(ctx,
+		time.Duration(configuration.MaxShutdownTime)*time.Second)
 	defer cancelShutdown()
 
 	// Закрытие HTTP-сервера
@@ -117,8 +116,11 @@ func main() {
 
 	fmt.Println("Сервер адекватно выключен.")
 
-	sugar.Info("Сохраняем базу ссылок на диск в файл ", configuration.FileStoragePath)
-	if err = urlRepo.DumpToFile(configuration.FileStoragePath); err != nil {
+	sugar.Infof("Сохраняем базу ссылок на диск в файл %s", configuration.FileStoragePath)
+	if err = urlRepo.DumpToFile(); err != nil {
+		if errors.Is(err, memory.ErrorCreatingFileWhenDump) {
+			sugar.Panic(err)
+		}
 		sugar.Error("При записи на диск возникла ошибка: ", err)
 	}
 }

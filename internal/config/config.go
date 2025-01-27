@@ -6,9 +6,12 @@ import (
 )
 
 type Config struct {
-	ServerAddr      string
-	BaseURLServer   string
-	FileStoragePath string
+	ServerAddr           string
+	BaseURLServer        string
+	FileStoragePath      string
+	MaxShortURLLength    int
+	MaxShutdownTime      int
+	MaxNewURLSBeforeSync int
 }
 
 func (c *Config) Parse() {
@@ -31,6 +34,8 @@ func MakeConfig() *Config {
 	flag.StringVar(&cfg.ServerAddr, "a", "localhost:8080", "адрес интерфейса, на котором запускать сервер")
 	flag.StringVar(&cfg.BaseURLServer, "b", "http://localhost:8080", "префикс короткого URL")
 	flag.StringVar(&cfg.FileStoragePath, "f", "dbase.json", "имя файла персистентного хранилища коротких URL")
-
+	flag.IntVar(&cfg.MaxShortURLLength, "max-short-url-len", 5, "максимально допустимая длина короткой ссылки")
+	flag.IntVar(&cfg.MaxShutdownTime, "max-shutdown-time", 5, "время в секундах, кторое мы ждем прежде чем прекратим выключать сервер")
+	flag.IntVar(&cfg.MaxNewURLSBeforeSync, "max-new-urls-before-sync-db", 10, "количество новых коротких ссылок прежде чем будет синхронизована бд")
 	return cfg
 }

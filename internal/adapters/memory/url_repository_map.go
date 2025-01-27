@@ -11,17 +11,24 @@ import (
 	"github.com/physicist2018/url-shortener-go/internal/core/models/urlmodels"
 )
 
-var ErrorOpeningFile = errors.New("ошибка открытия файла")
-var ErrorCreatingFile = errors.New("ошибка создания файла")
+var (
+	ErrorOpeningFileWhenRestore = errors.New("ошибка открытия файла при восстановлении базы")
+	ErrorCreatingFileWhenDump   = errors.New("ошибка создания файла при сохранении базы")
+	ErrorShortURLAlreadyInDB    = errors.New("короткая ссылка уже есть в базе")
+	ErrorShortURLNotFound       = errors.New("короткая ссылка не найдена в базе")
+	ErrorSyncDB                 = errors.New("ошибка синхронизации базы")
+)
 
 type URLRepositoryMap struct {
-	mutex sync.RWMutex
-	urls  map[string]urlmodels.URL
+	mutex  sync.RWMutex
+	urls   map[string]urlmodels.URL
+	dbfile string
 }
 
-func NewURLRepositoryMap() *URLRepositoryMap {
+func NewURLRepositoryMap(filename string) *URLRepositoryMap {
 	return &URLRepositoryMap{
-		urls: make(map[string]urlmodels.URL),
+		urls:   make(map[string]urlmodels.URL),
+		dbfile: filename,
 	}
 }
 
@@ -31,7 +38,7 @@ func (r *URLRepositoryMap) Save(url urlmodels.URL) (urlmodels.URL, error) {
 	defer r.mutex.Unlock()
 
 	if _, exists := r.urls[url.Short]; exists {
-		return urlmodels.URL{}, errors.New("короткая ссылка уже есть")
+		return urlmodels.URL{}, ErrorShortURLAlreadyInDB
 	}
 
 	r.urls[url.Short] = url
@@ -44,16 +51,18 @@ func (r *URLRepositoryMap) FindByShort(shortURL string) (urlmodels.URL, error) {
 
 	url, exists := r.urls[shortURL]
 	if !exists {
-		return urlmodels.URL{}, errors.New("короткая ссылка не найдена")
+		return urlmodels.URL{}, ErrorShortURLNotFound
 	}
 
 	return url, nil
 }
 
-func (r *URLRepositoryMap) DumpToFile(fullFilePath string) error {
-	file, err := os.Create(fullFilePath)
+// Этот метод реализует сохранение мапы в файл, при этом, если возникли проблемы при открытии
+// файла, мы просто возвращаем ошибку, которая в вызывающем коде должна вызвать панику
+func (r *URLRepositoryMap) DumpToFile() error {
+	file, err := os.Create(r.dbfile)
 	if err != nil {
-		return ErrorCreatingFile
+		return ErrorCreatingFileWhenDump
 	}
 	defer file.Close()
 
@@ -68,11 +77,14 @@ func (r *URLRepositoryMap) DumpToFile(fullFilePath string) error {
 	return nil
 }
 
-func (r *URLRepositoryMap) RestoreFromFile(fullFilePath string) error {
+// Этот метод должен реализовать поддержку загрузки списка сопоставлений из файла
+// в случае возниконвания ошибки невозможности загрузки, мы просто инициализируем чистую мапу
+// при этом сигнализируем об этом
+func (r *URLRepositoryMap) RestoreFromFile() error {
 	// Открываем файл для чтения
-	file, err := os.Open(fullFilePath)
+	file, err := os.Open(r.dbfile)
 	if err != nil {
-		return ErrorOpeningFile
+		return ErrorOpeningFileWhenRestore
 	}
 	defer file.Close()
 
