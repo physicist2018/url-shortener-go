@@ -43,6 +43,9 @@ func main() {
 
 	sugar := logger.Sugar()
 
+	sugar.Info("Настройки сервера:")
+	fmt.Println(configuration)
+
 	randomStringGenerator := utils.NewRandomString(configuration.MaxShortURLLength,
 		rand.New(rand.NewSource(time.Now().UnixNano())),
 	)
@@ -93,7 +96,36 @@ func main() {
 
 	// Используем sync.WaitGroup для ожидания завершения горутин
 	var wg sync.WaitGroup
-	wg.Add(1)
+	wg.Add(2)
+
+	// горутина периодического сохранения
+	startPeriodicSaver := func(interval time.Duration, stopChan chan struct{}) {
+		// Создаем тикер для выполнения задачи с заданным интервалом
+		ticker := time.NewTicker(interval)
+		defer ticker.Stop()
+		defer wg.Done()
+
+		for {
+			select {
+			case <-ticker.C:
+				// Выполняем задачу по таймеру
+				sugar.Info("Синхронизуем базу")
+				if err = urlDumper.Dump(); err != nil {
+					sugar.Panic("При записи на диск возникла ошибка: ", err)
+				}
+
+			case <-stopChan:
+				// Получен сигнал для завершения
+				sugar.Info("Периодическое сохранение остановлено")
+				return
+			}
+		}
+	}
+
+	stopChan := make(chan struct{})
+
+	// Запускаем горутину с периодической задачей с интервалом 2 секунды
+	go startPeriodicSaver(time.Duration(configuration.MaxTimeBetweenSync)*time.Second, stopChan)
 
 	// Запуск HTTP-сервера в горутине
 	go func() {
@@ -105,6 +137,8 @@ func main() {
 	fmt.Println("\nСервер зaпущен!")
 	// Ожидаем получения сигнала завершения
 	<-stop
+	close(stopChan)
+
 	fmt.Println("\nПолучен сигнал завершения, выключаем сервер...")
 
 	// Создаем контекст с таймаутом для корректного завершения сервера
@@ -124,6 +158,6 @@ func main() {
 
 	sugar.Infof("Сохраняем базу ссылок на диск в файл %s", configuration.FileStoragePath)
 	if err = urlDumper.Dump(); err != nil {
-		sugar.Error("При записи на диск возникла ошибка: ", err)
+		sugar.Panic("При записи на диск возникла ошибка: ", err)
 	}
 }
