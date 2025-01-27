@@ -20,11 +20,14 @@ import (
 	"github.com/physicist2018/url-shortener-go/internal/adapters/memory"
 	"github.com/physicist2018/url-shortener-go/internal/config"
 	"github.com/physicist2018/url-shortener-go/internal/core/services/url"
+	"github.com/physicist2018/url-shortener-go/internal/core/services/urldumper"
 	"github.com/physicist2018/url-shortener-go/internal/middlewares/compressor"
 	"github.com/physicist2018/url-shortener-go/internal/middlewares/httplogger"
 	"github.com/physicist2018/url-shortener-go/pkg/utils"
 	"go.uber.org/zap"
 )
+
+// А что если сброс данных на диск сделать отднльной службой, ответственной только за загрузку/сохранение данных на диск?
 
 func main() {
 	configuration := config.MakeConfig()
@@ -44,10 +47,13 @@ func main() {
 		rand.New(rand.NewSource(time.Now().UnixNano())),
 	)
 
-	urlRepo := memory.NewURLRepositoryMap(configuration.FileStoragePath)
+	// наш репо
+	urlRepo := memory.NewURLRepositoryMap()
 
+	// сервис загрузки/сохранения ссылок
+	urlDumper := urldumper.NewURLDumper(urlRepo, configuration.FileStoragePath)
 	sugar.Infof("Загрузка ссылок из файла %s... ", configuration.FileStoragePath)
-	if err = urlRepo.RestoreFromFile(); err != nil {
+	if err = urlDumper.Restore(); err != nil {
 		if !errors.Is(err, memory.ErrorOpeningFileWhenRestore) {
 			sugar.Panic(err)
 		}
@@ -117,7 +123,7 @@ func main() {
 	fmt.Println("Сервер адекватно выключен.")
 
 	sugar.Infof("Сохраняем базу ссылок на диск в файл %s", configuration.FileStoragePath)
-	if err = urlRepo.DumpToFile(); err != nil {
+	if err = urlDumper.Dump(); err != nil {
 		sugar.Error("При записи на диск возникла ошибка: ", err)
 	}
 }

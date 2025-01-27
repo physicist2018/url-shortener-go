@@ -20,15 +20,13 @@ var (
 )
 
 type URLRepositoryMap struct {
-	mutex  sync.RWMutex
-	urls   map[string]urlmodels.URL
-	dbfile string
+	mutex sync.RWMutex
+	urls  map[string]urlmodels.URL
 }
 
-func NewURLRepositoryMap(filename string) *URLRepositoryMap {
+func NewURLRepositoryMap() *URLRepositoryMap {
 	return &URLRepositoryMap{
-		urls:   make(map[string]urlmodels.URL),
-		dbfile: filename,
+		urls: make(map[string]urlmodels.URL),
 	}
 }
 
@@ -59,8 +57,8 @@ func (r *URLRepositoryMap) FindByShort(shortURL string) (urlmodels.URL, error) {
 
 // Этот метод реализует сохранение мапы в файл, при этом, если возникли проблемы при открытии
 // файла, мы просто возвращаем ошибку, которая в вызывающем коде должна вызвать панику
-func (r *URLRepositoryMap) DumpToFile() error {
-	file, err := os.Create(r.dbfile)
+func (r *URLRepositoryMap) Dump(filename string) error {
+	file, err := os.Create(filename)
 	if err != nil {
 		return ErrorCreatingFileWhenDump
 	}
@@ -80,9 +78,9 @@ func (r *URLRepositoryMap) DumpToFile() error {
 // Этот метод должен реализовать поддержку загрузки списка сопоставлений из файла
 // в случае возниконвания ошибки невозможности загрузки, мы просто инициализируем чистую мапу
 // при этом сигнализируем об этом
-func (r *URLRepositoryMap) RestoreFromFile() error {
+func (r *URLRepositoryMap) Restore(filename string) error {
 	// Открываем файл для чтения
-	file, err := os.Open(r.dbfile)
+	file, err := os.Open(filename)
 	if err != nil {
 		return ErrorOpeningFileWhenRestore
 	}
