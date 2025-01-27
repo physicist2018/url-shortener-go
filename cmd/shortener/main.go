@@ -118,9 +118,6 @@ func main() {
 
 	sugar.Infof("Сохраняем базу ссылок на диск в файл %s", configuration.FileStoragePath)
 	if err = urlRepo.DumpToFile(); err != nil {
-		if errors.Is(err, memory.ErrorCreatingFileWhenDump) {
-			sugar.Panic(err)
-		}
 		sugar.Error("При записи на диск возникла ошибка: ", err)
 	}
 }
