@@ -124,7 +124,7 @@ func main() {
 
 	stopChan := make(chan struct{})
 
-	// Запускаем горутину с периодической задачей с интервалом 2 секунды
+	// Запускаем горутину с периодической задачей с интервалом configuration.MaxTimeBetweenSync секунды
 	go startPeriodicSaver(time.Duration(configuration.MaxTimeBetweenSync)*time.Second, stopChan)
 
 	// Запуск HTTP-сервера в горутине
