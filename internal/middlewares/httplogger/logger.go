@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"time"
 
-	"go.uber.org/zap"
+	"github.com/rs/zerolog"
 )
 
 type (
@@ -34,7 +34,7 @@ func (r *loggingResponseWriter) WriteHeader(statusCode int) {
 	r.responseData.status = statusCode // захватываем код статуса
 }
 
-func LoggerMiddleware(sugar *zap.SugaredLogger) func(http.Handler) http.Handler {
+func LoggerMiddleware(logger *zerolog.Logger) func(http.Handler) http.Handler {
 
 	return func(next http.Handler) http.Handler {
 
@@ -57,13 +57,13 @@ func LoggerMiddleware(sugar *zap.SugaredLogger) func(http.Handler) http.Handler 
 
 			duration := time.Since(start)
 
-			sugar.Infoln(
-				"uri", uri,
-				"method", method,
-				"status", respData.status,
-				"duration", duration,
-				"size", respData.size,
-			)
+			logger.Info().
+				Str("uri", uri).
+				Str("method", method).
+				Int("status", respData.status).
+				Dur("duration", duration).
+				Int("size", respData.size).
+				Send()
 		})
 	}
 }

@@ -7,7 +7,7 @@ import (
 
 	"github.com/physicist2018/url-shortener-go/internal/adapters/urlshortenerserver"
 	"github.com/physicist2018/url-shortener-go/internal/config"
-	"go.uber.org/zap"
+	"github.com/rs/zerolog"
 )
 
 func main() {
@@ -16,15 +16,17 @@ func main() {
 	configuration.Parse()
 
 	// Инициализация логгера
-	logger, err := zap.NewDevelopment()
-	if err != nil {
-		panic(err)
-	}
-	defer logger.Sync()
-	sugar := logger.Sugar()
+
+	logger := zerolog.New(os.Stdout).Level(zerolog.InfoLevel)
+	//logger, err := zap.NewDevelopment()
+	//if err != nil {
+	//	panic(err)
+	//}
+	//defer logger.Sync()
+	//sugar := logger.Sugar()
 
 	// Инициализация сервера
-	server := urlshortenerserver.NewURLShortenerServer(configuration, sugar)
+	server := urlshortenerserver.NewURLShortenerServer(configuration, &logger)
 
 	// Запуск сервера
 	server.Start()

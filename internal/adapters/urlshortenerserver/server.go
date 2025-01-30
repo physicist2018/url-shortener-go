@@ -6,6 +6,7 @@ import (
 	"errors"
 	"math/rand"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -17,19 +18,20 @@ import (
 	"github.com/physicist2018/url-shortener-go/internal/middlewares/compressor"
 	"github.com/physicist2018/url-shortener-go/internal/middlewares/httplogger"
 	"github.com/physicist2018/url-shortener-go/pkg/utils"
-	"go.uber.org/zap"
+	"github.com/rs/zerolog"
+	//"go.uber.org/zap"
 )
 
 type URLShortenerServer struct {
 	Config  *config.Config
-	Logger  *zap.SugaredLogger
+	Logger  *zerolog.Logger //*zap.SugaredLogger
 	Handler http.Handler
 	HTTP    *http.Server
 	URLRepo *memory.URLRepositoryMap
 }
 
 // NewServer initializes the server with configuration and logger
-func NewURLShortenerServer(config *config.Config, logger *zap.SugaredLogger) *URLShortenerServer {
+func NewURLShortenerServer(config *config.Config, logger *zerolog.Logger) *URLShortenerServer {
 	// генератор случайных строк
 	randomStringGenerator := utils.NewRandomString(config.MaxShortURLLength,
 		rand.New(rand.NewSource(time.Now().UnixNano())),
@@ -39,12 +41,14 @@ func NewURLShortenerServer(config *config.Config, logger *zap.SugaredLogger) *UR
 	urlRepo := memory.NewURLRepositoryMap(config.FileStoragePath)
 
 	// Восстановление данных из файла
-	logger.Infof("Загрузка ссылок из файла %s... ", config.FileStoragePath)
+	logger.Info().Msg(strings.Join([]string{"Загрузка ссылок из файла", config.FileStoragePath}, " "))
+
 	if err := urlRepo.RestoreFromFile(); err != nil {
 		if !errors.Is(err, memory.ErrorOpeningFileWhenRestore) {
-			logger.Panic(err)
+			logger.Panic().Err(err)
 		}
-		logger.Infof("При восстановлении хранилища из файла оный не обнаружен (будет создан при закрытии): %s", err.Error())
+		logger.Info().Msg(strings.Join([]string{"При восстановлении хранилища из файла оный не обнаружен (будет создан при закрытии):", err.Error()}, " "))
+		//logger.Infof("При восстановлении хранилища из файла оный не обнаружен (будет создан при закрытии): %s", err.Error())
 	}
 
 	urlService := url.NewURLService(urlRepo, randomStringGenerator)
@@ -81,10 +85,11 @@ func (s *URLShortenerServer) Start() {
 	// Запуск HTTP-сервера в горутине
 	go func() {
 		if err := s.HTTP.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			s.Logger.Fatalf("Ошибка при запуске сервера: %v", err)
+			s.Logger.Err(err)
+			//s.Logger.Fatalf("Ошибка при запуске сервера: %v", err)
 		}
 	}()
-	s.Logger.Info("Сервер запущен на ", s.Config.ServerAddr)
+	s.Logger.Info().Msg(strings.Join([]string{"Сервер запущен на ", s.Config.ServerAddr}, " "))
 }
 
 // Shutdown gracefully stops the server
@@ -95,16 +100,16 @@ func (s *URLShortenerServer) Shutdown() {
 	defer cancelShutdown()
 
 	// Закрытие сервера
-	s.Logger.Info("Выключение сервера...")
+	s.Logger.Info().Msg("Выключение сервера...")
 	if err := s.HTTP.Shutdown(shutdownCtx); err != nil {
-		s.Logger.Errorf("Ошибка при выключении сервера: %v", err)
+		s.Logger.Err(err)
 	}
 
 	// Сохранение ссылок в файл
-	s.Logger.Infof("Сохраняем базу ссылок на диск в файл %s", s.Config.FileStoragePath)
+	s.Logger.Info().Msg(strings.Join([]string{"Сохраняем базу ссылок на диск в файл", s.Config.FileStoragePath}, " "))
 	if err := s.URLRepo.DumpToFile(); err != nil {
-		s.Logger.Errorf("Ошибка при записи на диск: %v", err)
+		s.Logger.Err(err)
 	}
 
-	s.Logger.Info("Сервер корректно завершил работу.")
+	s.Logger.Info().Msg("Сервер корректно завершил работу.")
 }
