@@ -1,7 +1,12 @@
-package utils
+package randomstringgenerator
 
 import (
 	"math/rand"
+	"time"
+)
+
+const (
+	RandomStringLength = 5
 )
 
 type RandomString struct {
@@ -13,6 +18,13 @@ func NewRandomString(length int, rnd *rand.Rand) *RandomString {
 	return &RandomString{
 		length:    length,
 		generator: rnd,
+	}
+}
+
+func NewRandomStringDefault() *RandomString {
+	return &RandomString{
+		length:    RandomStringLength,
+		generator: rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 }
 
