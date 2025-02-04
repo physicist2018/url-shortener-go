@@ -53,7 +53,7 @@ func (c *Config) Parse() {
 
 func (c *Config) String() string {
 	return fmt.Sprintf(
-		"ServerAddr: %s, BaseURLServer: %s, FileStoragePath: %s, DatabaseDSN: %s, MaxShortURLLength: %d, MaxShutdownTime: %d",
+		"ServerAddr: %s, \nBaseURLServer: %s, \nFileStoragePath: %s, \nDatabaseDSN: %s, \nMaxShortURLLength: %d, \nMaxShutdownTime: %d",
 		c.ServerAddr,
 		c.BaseURLServer,
 		c.FileStoragePath,
