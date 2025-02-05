@@ -47,7 +47,7 @@ func (h *URLLinkHandler) ShortenURL(w http.ResponseWriter, r *http.Request) {
 	}
 
 	fullURL := strings.Join([]string{h.baseURL, urllink.ShortURL}, "/")
-	w.Header().Set("Content-Type", "text/plain")
+	//w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusCreated)
 	w.Write([]byte(fullURL))
 }

@@ -11,7 +11,7 @@ import (
 	"github.com/physicist2018/url-shortener-go/internal/handler"
 	"github.com/physicist2018/url-shortener-go/internal/middlewares/compressor"
 	"github.com/physicist2018/url-shortener-go/internal/middlewares/httplogger"
-	"github.com/physicist2018/url-shortener-go/internal/repository/database/postgresdbrepo"
+	"github.com/physicist2018/url-shortener-go/internal/repository/inmemory"
 	"github.com/physicist2018/url-shortener-go/internal/service"
 	randomstringgenerator "github.com/physicist2018/url-shortener-go/pkg/randomstring_generator"
 	"github.com/rs/zerolog"
@@ -32,7 +32,7 @@ func main() {
 	logger.Info().Msg("инициализация генератора случайных ссылок")
 	randomStringGenerator := randomstringgenerator.NewRandomStringDefault()
 
-	linkRepo, err := postgresdbrepo.NewDBLinkRepository(cfg.DatabaseDSN)
+	linkRepo, err := inmemory.NewInMemoryLinkRepository(cfg.FileStoragePath)
 	if err != nil {
 		logger.Error().Err(err).Send()
 		panic(err)
