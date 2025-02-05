@@ -49,6 +49,7 @@ func main() {
 	r.Use(middleware.AllowContentType("text/plain", "application/json", "text/html", "application/x-gzip"))
 	r.Use(middleware.Recoverer)
 
+	///
 	r.Post("/", linkHandler.ShortenURL)
 	r.Post("/api/shorten", linkHandler.HandleGenerateShortURLJson)
 	r.Get("/{shortURL}", linkHandler.Redirect)
