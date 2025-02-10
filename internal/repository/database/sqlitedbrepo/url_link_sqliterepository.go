@@ -63,8 +63,8 @@ func (d *SQLiteDBLinkRepository) Ping(ctx context.Context) error {
 func (d *SQLiteDBLinkRepository) create(ctx context.Context) error {
 	query := `CREATE TABLE IF NOT EXISTS links(
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		short_url TEXT NOT NULL UNIQUE,
-		original_url TEXT NOT NULL
+		short_url TEXT NOT NULL,
+		original_url TEXT NOT NULL UNIQUE
 	);`
 	_, err := d.db.ExecContext(ctx, query)
 	return err

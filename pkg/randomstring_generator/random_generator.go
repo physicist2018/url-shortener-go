@@ -28,6 +28,13 @@ func NewRandomStringDefault() *RandomString {
 	}
 }
 
+func NewRandomStringFixed() *RandomString {
+	return &RandomString{
+		length:    RandomStringLength,
+		generator: rand.New(rand.NewSource(10)),
+	}
+}
+
 const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
 // GenerateRandomString генерирует короткую ссылку из случайных символов

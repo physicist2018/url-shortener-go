@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"time"
 
 	_ "github.com/lib/pq"
@@ -18,18 +19,18 @@ type PostgresDBLinkRepository struct {
 func NewDBLinkRepository(connStr string) (*PostgresDBLinkRepository, error) {
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("ошибка подключения к БД: %w", err)
 	}
 
 	if err = db.Ping(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("ошибка подключения к БД: %w", err)
 	}
 
 	dblink := &PostgresDBLinkRepository{db: db}
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := dblink.create(ctx); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("ошибка создания таблицы: %w", err)
 	}
 
 	return dblink, nil
@@ -38,6 +39,9 @@ func NewDBLinkRepository(connStr string) (*PostgresDBLinkRepository, error) {
 func (d *PostgresDBLinkRepository) Store(ctx context.Context, urllink *domain.URLLink) error {
 	query := `INSERT INTO links(short_url, original_url) VALUES($1, $2);`
 	_, err := d.db.ExecContext(ctx, query, urllink.ShortURL, urllink.LongURL)
+	if err != nil {
+		err = fmt.Errorf("ошибка записи в таблицу: %w", err)
+	}
 	return err
 }
 
@@ -63,8 +67,8 @@ func (d *PostgresDBLinkRepository) Ping(ctx context.Context) error {
 func (d *PostgresDBLinkRepository) create(ctx context.Context) error {
 	query := `CREATE TABLE IF NOT EXISTS links (
     id SERIAL PRIMARY KEY,
-    short_url TEXT NOT NULL UNIQUE,
-    original_url TEXT NOT NULL);`
+    short_url TEXT NOT NULL,
+    original_url TEXT NOT NULL UNIQUE);`
 	_, err := d.db.ExecContext(ctx, query)
 	return err
 
