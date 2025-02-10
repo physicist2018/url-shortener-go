@@ -1,35 +1,39 @@
-package httphandlers
+package handler
 
 import (
+	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
+	"strings"
 )
 
 type (
-	RequestBody struct {
+	requestBody struct {
 		URL string `json:"url"`
 	}
 
-	ResponseBody struct {
+	responseBody struct {
 		Result string `json:"result"`
 	}
 )
 
-func (h *URLHandler) HandleGenerateShortURLJson(w http.ResponseWriter, r *http.Request) {
+func (h *URLLinkHandler) HandleGenerateShortURLJson(w http.ResponseWriter, r *http.Request) {
+
 	if r.Header.Get("Content-Type") != "application/json" { // не JSON
-		http.Error(w, "Content-Type must be application/json", http.StatusBadRequest)
+		http.Error(w, "Content-Type должен быть application/json", http.StatusBadRequest)
 		return
 	}
 	// Парсим тело запроса
-	var reqBody RequestBody
+	var reqBody requestBody
 	err := json.NewDecoder(r.Body).Decode(&reqBody)
 	if err != nil || reqBody.URL == "" {
 		http.Error(w, "Некорректное тело запроса. url должно быть строкой", http.StatusBadRequest)
 		return
 	}
 
-	urlModel, err := h.urlService.GenerateShortURL(reqBody.URL)
+	ctx, cancel := context.WithTimeout(r.Context(), RequestResponseTimeout)
+	defer cancel()
+	urlModel, err := h.service.CreateShortURL(ctx, reqBody.URL)
 
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest) // 400
@@ -37,8 +41,8 @@ func (h *URLHandler) HandleGenerateShortURLJson(w http.ResponseWriter, r *http.R
 	}
 
 	// Формируем ответ
-	respBody := ResponseBody{
-		Result: fmt.Sprintf("%s/%s", h.baseURL, urlModel.Short),
+	respBody := responseBody{
+		Result: strings.Join([]string{h.baseURL, urlModel.ShortURL}, "/"),
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
