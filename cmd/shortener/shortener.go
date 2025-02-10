@@ -8,6 +8,7 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/physicist2018/url-shortener-go/internal/config"
+	"github.com/physicist2018/url-shortener-go/internal/domain"
 	"github.com/physicist2018/url-shortener-go/internal/handler"
 	"github.com/physicist2018/url-shortener-go/internal/middlewares/compressor"
 	"github.com/physicist2018/url-shortener-go/internal/middlewares/httplogger"
@@ -18,6 +19,7 @@ import (
 )
 
 func main() {
+	var err error
 	logger := zerolog.New(os.Stdout).Level(zerolog.InfoLevel)
 	logger.Info().Msg("конфигурирование сервера")
 
@@ -33,7 +35,14 @@ func main() {
 	randomStringGenerator := randomstringgenerator.NewRandomStringDefault()
 
 	repofactory := repofactorymethod.NewRepofactorymethod()
-	linkRepo, err := repofactory.CreateRepo("postgres", cfg.DatabaseDSN)
+	var linkRepo domain.URLLinkRepo
+
+	if cfg.DatabaseDSN != "" {
+		linkRepo, err = repofactory.CreateRepo("postgres", cfg.DatabaseDSN)
+	} else {
+		linkRepo, err = repofactory.CreateRepo("inmemory", cfg.FileStoragePath)
+	}
+
 	//inmemory.NewInMemoryLinkRepository(cfg.FileStoragePath)
 	if err != nil {
 		logger.Error().Err(err).Send()
