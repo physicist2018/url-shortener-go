@@ -33,7 +33,7 @@ func main() {
 	randomStringGenerator := randomstringgenerator.NewRandomStringDefault()
 
 	repofactory := repofactorymethod.NewRepofactorymethod()
-	linkRepo, err := repofactory.CreateRepo("inmemory", cfg.FileStoragePath)
+	linkRepo, err := repofactory.CreateRepo("postgres", cfg.DatabaseDSN)
 	//inmemory.NewInMemoryLinkRepository(cfg.FileStoragePath)
 	if err != nil {
 		logger.Error().Err(err).Send()
