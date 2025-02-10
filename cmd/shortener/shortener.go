@@ -37,8 +37,11 @@ func main() {
 	repofactory := repofactorymethod.NewRepofactorymethod()
 	var linkRepo domain.URLLinkRepo
 
+	// Надо реализовать InJsonFile storage
 	if cfg.DatabaseDSN != "" {
 		linkRepo, err = repofactory.CreateRepo("postgres", cfg.DatabaseDSN)
+	} else if cfg.FileStoragePath != "" {
+		linkRepo, err = repofactory.CreateRepo("inmemory", cfg.FileStoragePath)
 	} else {
 		linkRepo, err = repofactory.CreateRepo("inmemory", cfg.FileStoragePath)
 	}
@@ -63,6 +66,7 @@ func main() {
 	///
 	r.Post("/", linkHandler.ShortenURL)
 	r.Post("/api/shorten", linkHandler.HandleGenerateShortURLJson)
+	r.Post("/api/shorten/batch", linkHandler.HandleGenerateShortURLJsonBatch)
 	r.Get("/{shortURL}", linkHandler.Redirect)
 	r.Get("/ping", linkHandler.PingHandler)
 
