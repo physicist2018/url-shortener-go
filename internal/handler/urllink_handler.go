@@ -33,34 +33,29 @@ func NewURLLinkHandler(service *service.URLLinkService, baseURL string) *URLLink
 func (h *URLLinkHandler) ShortenURL(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), RequestResponseTimeout)
 	defer cancel()
+
 	longURLBytes, err := io.ReadAll(r.Body)
-	if err != nil {
+	if err != nil || len(longURLBytes) == 0 {
 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		return
 	}
 
 	longURL := string(longURLBytes)
-	if len(longURL) == 0 {
-		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest) // 400
-		return
-	}
-
 	urllink, err := h.service.CreateShortURL(ctx, longURL)
-	if errors.Is(err, repoerrors.ErrURLAlreadyInDB) {
+
+	switch {
+	case errors.Is(err, repoerrors.ErrURLAlreadyInDB):
 		fullURL := strings.Join([]string{h.baseURL, urllink.ShortURL}, "/")
-		//w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusConflict)
 		w.Write([]byte(fullURL))
-		return
-	} else if err != nil {
+	case err != nil:
 		log.Println(err)
 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-		return
+	default:
+		fullURL := strings.Join([]string{h.baseURL, urllink.ShortURL}, "/")
+		w.WriteHeader(http.StatusCreated)
+		w.Write([]byte(fullURL))
 	}
-
-	fullURL := strings.Join([]string{h.baseURL, urllink.ShortURL}, "/")
-	//w.Header().Set("Content-Type", "text/plain")
-	w.WriteHeader(http.StatusCreated)
-	w.Write([]byte(fullURL))
 }
 
 func (h *URLLinkHandler) Redirect(w http.ResponseWriter, r *http.Request) {
