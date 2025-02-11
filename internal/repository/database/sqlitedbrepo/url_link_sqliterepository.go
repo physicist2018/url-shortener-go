@@ -46,8 +46,8 @@ func (d *SQLiteDBLinkRepository) Store(ctx context.Context, urllink *domain.URLL
 		var sqliteError sqlite3.Error
 		if errors.As(err, &sqliteError) {
 			if sqliteError.ExtendedCode == sqlite3.ErrConstraintUnique {
-				query_select := `SELECT short_url FROM links WHERE original_url = $1 LIMIT 1;`
-				row := d.db.QueryRowContext(ctx, query_select, urllink.LongURL)
+				querySelect := `SELECT short_url FROM links WHERE original_url = $1 LIMIT 1;`
+				row := d.db.QueryRowContext(ctx, querySelect, urllink.LongURL)
 				row.Scan(&urllink.ShortURL)
 				return repoerrors.ErrUrlAlreadyInDB
 			}
