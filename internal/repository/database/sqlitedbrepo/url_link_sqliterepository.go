@@ -9,7 +9,6 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	"github.com/mattn/go-sqlite3"
-	_ "github.com/mattn/go-sqlite3"
 
 	"github.com/physicist2018/url-shortener-go/internal/domain"
 	"github.com/physicist2018/url-shortener-go/internal/repository/repoerrors"
