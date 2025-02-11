@@ -39,7 +39,7 @@ func main() {
 
 	// Надо реализовать InJsonFile storage
 	if cfg.DatabaseDSN != "" {
-		linkRepo, err = repofactory.CreateRepo("sqlite", cfg.DatabaseDSN)
+		linkRepo, err = repofactory.CreateRepo("postgres", cfg.DatabaseDSN)
 	} else if cfg.FileStoragePath != "" {
 		linkRepo, err = repofactory.CreateRepo("inmemory", cfg.FileStoragePath)
 	} else {
