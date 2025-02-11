@@ -2,9 +2,11 @@ package service
 
 import (
 	"context"
+	"errors"
 
 	"github.com/physicist2018/url-shortener-go/internal/domain"
 	"github.com/physicist2018/url-shortener-go/internal/ports/randomstring"
+	"github.com/physicist2018/url-shortener-go/internal/repository/repoerrors"
 )
 
 type URLLinkService struct {
@@ -27,7 +29,10 @@ func (u *URLLinkService) CreateShortURL(ctx context.Context, longURL string) (*d
 		LongURL:  longURL,
 	}
 	err := u.repo.Store(ctx, link)
-	if err != nil {
+
+	if errors.Is(err, repoerrors.ErrUrlAlreadyInDB) {
+		return link, err
+	} else if err != nil {
 		return nil, err
 	}
 

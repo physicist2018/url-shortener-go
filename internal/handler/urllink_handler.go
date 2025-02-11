@@ -2,12 +2,15 @@ package handler
 
 import (
 	"context"
+	"errors"
 	"io"
+	"log"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/go-chi/chi"
+	"github.com/physicist2018/url-shortener-go/internal/repository/repoerrors"
 	"github.com/physicist2018/url-shortener-go/internal/service"
 )
 
@@ -42,8 +45,16 @@ func (h *URLLinkHandler) ShortenURL(w http.ResponseWriter, r *http.Request) {
 	}
 
 	urllink, err := h.service.CreateShortURL(ctx, longURL)
-	if err != nil {
+	if errors.Is(err, repoerrors.ErrUrlAlreadyInDB) {
+		fullURL := strings.Join([]string{h.baseURL, urllink.ShortURL}, "/")
+		//w.Header().Set("Content-Type", "text/plain")
+		w.WriteHeader(http.StatusConflict)
+		w.Write([]byte(fullURL))
+		return
+	} else if err != nil {
+		log.Println(err)
 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		return
 	}
 
 	fullURL := strings.Join([]string{h.baseURL, urllink.ShortURL}, "/")

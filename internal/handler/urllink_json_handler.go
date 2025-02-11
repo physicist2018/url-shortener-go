@@ -3,9 +3,13 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
+
+	"github.com/physicist2018/url-shortener-go/internal/repository/repoerrors"
 )
 
 type (
@@ -36,8 +40,17 @@ func (h *URLLinkHandler) HandleGenerateShortURLJson(w http.ResponseWriter, r *ht
 	defer cancel()
 	urlModel, err := h.service.CreateShortURL(ctx, reqBody.URL)
 
-	if err != nil {
-		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest) // 400
+	if errors.Is(err, repoerrors.ErrUrlAlreadyInDB) {
+		respBody := responseBody{
+			Result: strings.Join([]string{h.baseURL, urlModel.ShortURL}, "/"),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusConflict)
+		json.NewEncoder(w).Encode(respBody)
+		return
+	} else if err != nil {
+		log.Println(err)
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
 	}
 

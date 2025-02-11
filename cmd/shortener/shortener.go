@@ -39,7 +39,7 @@ func main() {
 
 	// Надо реализовать InJsonFile storage
 	if cfg.DatabaseDSN != "" {
-		linkRepo, err = repofactory.CreateRepo("postgres", cfg.DatabaseDSN)
+		linkRepo, err = repofactory.CreateRepo("sqlite", cfg.DatabaseDSN)
 	} else if cfg.FileStoragePath != "" {
 		linkRepo, err = repofactory.CreateRepo("inmemory", cfg.FileStoragePath)
 	} else {
@@ -63,7 +63,7 @@ func main() {
 	r.Use(middleware.AllowContentType("text/plain", "application/json", "text/html", "application/x-gzip"))
 	r.Use(middleware.Recoverer)
 
-	///
+	/// ручки управления
 	r.Post("/", linkHandler.ShortenURL)
 	r.Post("/api/shorten", linkHandler.HandleGenerateShortURLJson)
 	r.Post("/api/shorten/batch", linkHandler.HandleGenerateShortURLJsonBatch)

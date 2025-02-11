@@ -7,17 +7,19 @@ import (
 	"fmt"
 	"time"
 
-	_ "github.com/lib/pq"
+	"github.com/jmoiron/sqlx"
+	"github.com/lib/pq"
 
 	"github.com/physicist2018/url-shortener-go/internal/domain"
+	"github.com/physicist2018/url-shortener-go/internal/repository/repoerrors"
 )
 
 type PostgresDBLinkRepository struct {
-	db *sql.DB
+	db *sqlx.DB
 }
 
 func NewDBLinkRepository(connStr string) (*PostgresDBLinkRepository, error) {
-	db, err := sql.Open("postgres", connStr)
+	db, err := sqlx.Open("postgres", connStr)
 	if err != nil {
 		return nil, fmt.Errorf("ошибка подключения к БД: %w", err)
 	}
@@ -40,7 +42,17 @@ func (d *PostgresDBLinkRepository) Store(ctx context.Context, urllink *domain.UR
 	query := `INSERT INTO links(short_url, original_url) VALUES($1, $2);`
 	_, err := d.db.ExecContext(ctx, query, urllink.ShortURL, urllink.LongURL)
 	if err != nil {
-		err = fmt.Errorf("ошибка записи в таблицу: %w", err)
+		var pqErr *pq.Error
+		if errors.As(err, &pqErr) {
+			if pqErr.Code == "23505" {
+				query_select := `SELECT short_url FROM links WHERE original_url = $1 LIMIT 1;`
+				row := d.db.QueryRowContext(ctx, query_select, urllink.LongURL)
+				row.Scan(&urllink.ShortURL)
+				return repoerrors.ErrUrlAlreadyInDB
+			}
+		}
+		// оборачиваем исходную ошибку
+		return fmt.Errorf("какая-то непредвиденная ошибка %w", err)
 	}
 	return err
 }

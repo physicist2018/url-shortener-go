@@ -4,19 +4,23 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"time"
 
-	_ "modernc.org/sqlite"
+	"github.com/jmoiron/sqlx"
+	"github.com/mattn/go-sqlite3"
+	_ "github.com/mattn/go-sqlite3"
 
 	"github.com/physicist2018/url-shortener-go/internal/domain"
+	"github.com/physicist2018/url-shortener-go/internal/repository/repoerrors"
 )
 
 type SQLiteDBLinkRepository struct {
-	db *sql.DB
+	db *sqlx.DB
 }
 
 func NewDBLinkRepository(connStr string) (*SQLiteDBLinkRepository, error) {
-	db, err := sql.Open("sqlite", connStr)
+	db, err := sqlx.Open("sqlite3", connStr)
 	if err != nil {
 		return nil, err
 	}
@@ -38,6 +42,20 @@ func NewDBLinkRepository(connStr string) (*SQLiteDBLinkRepository, error) {
 func (d *SQLiteDBLinkRepository) Store(ctx context.Context, urllink *domain.URLLink) error {
 	query := `INSERT INTO links(short_url, original_url) VALUES($1, $2);`
 	_, err := d.db.ExecContext(ctx, query, urllink.ShortURL, urllink.LongURL)
+
+	if err != nil {
+		var sqliteError sqlite3.Error
+		if errors.As(err, &sqliteError) {
+			if sqliteError.ExtendedCode == sqlite3.ErrConstraintUnique {
+				query_select := `SELECT short_url FROM links WHERE original_url = $1 LIMIT 1;`
+				row := d.db.QueryRowContext(ctx, query_select, urllink.LongURL)
+				row.Scan(&urllink.ShortURL)
+				return repoerrors.ErrUrlAlreadyInDB
+			}
+		}
+		// оборачиваем исходную ошибку
+		return fmt.Errorf("какая-то непредвиденная ошибка %w", err)
+	}
 	return err
 }
 
