@@ -45,7 +45,7 @@ func (h *URLLinkHandler) ShortenURL(w http.ResponseWriter, r *http.Request) {
 	}
 
 	urllink, err := h.service.CreateShortURL(ctx, longURL)
-	if errors.Is(err, repoerrors.ErrUrlAlreadyInDB) {
+	if errors.Is(err, repoerrors.ErrURLAlreadyInDB) {
 		fullURL := strings.Join([]string{h.baseURL, urllink.ShortURL}, "/")
 		//w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusConflict)

@@ -49,7 +49,7 @@ func (d *SQLiteDBLinkRepository) Store(ctx context.Context, urllink *domain.URLL
 				querySelect := `SELECT short_url FROM links WHERE original_url = $1 LIMIT 1;`
 				row := d.db.QueryRowContext(ctx, querySelect, urllink.LongURL)
 				row.Scan(&urllink.ShortURL)
-				return repoerrors.ErrUrlAlreadyInDB
+				return repoerrors.ErrURLAlreadyInDB
 			}
 		}
 		// оборачиваем исходную ошибку

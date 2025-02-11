@@ -40,7 +40,7 @@ func (h *URLLinkHandler) HandleGenerateShortURLJson(w http.ResponseWriter, r *ht
 	defer cancel()
 	urlModel, err := h.service.CreateShortURL(ctx, reqBody.URL)
 
-	if errors.Is(err, repoerrors.ErrUrlAlreadyInDB) {
+	if errors.Is(err, repoerrors.ErrURLAlreadyInDB) {
 		respBody := responseBody{
 			Result: strings.Join([]string{h.baseURL, urlModel.ShortURL}, "/"),
 		}

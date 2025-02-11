@@ -30,7 +30,7 @@ func (u *URLLinkService) CreateShortURL(ctx context.Context, longURL string) (*d
 	}
 	err := u.repo.Store(ctx, link)
 
-	if errors.Is(err, repoerrors.ErrUrlAlreadyInDB) {
+	if errors.Is(err, repoerrors.ErrURLAlreadyInDB) {
 		return link, err
 	} else if err != nil {
 		return nil, err
