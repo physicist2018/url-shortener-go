@@ -9,9 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-chi/chi"
+	"github.com/physicist2018/url-shortener-go/internal/domain"
 	"github.com/physicist2018/url-shortener-go/internal/repository/repoerrors"
-	"github.com/physicist2018/url-shortener-go/internal/service"
 )
 
 const (
@@ -19,11 +18,11 @@ const (
 )
 
 type URLLinkHandler struct {
-	service *service.URLLinkService
+	service domain.URLLinkServicer
 	baseURL string
 }
 
-func NewURLLinkHandler(service *service.URLLinkService, baseURL string) *URLLinkHandler {
+func NewURLLinkHandler(service domain.URLLinkServicer, baseURL string) *URLLinkHandler {
 	return &URLLinkHandler{
 		service: service,
 		baseURL: baseURL,
@@ -62,7 +61,10 @@ func (h *URLLinkHandler) Redirect(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
 	defer cancel()
 
-	shortURL := chi.URLParam(r, "shortURL")
+	//shortURL := chi.URLParam(r, "shortURL")
+	path := r.URL.Path
+	shortURL := strings.TrimPrefix(path, "/")
+
 	originalURL, err := h.service.GetOriginalURL(ctx, shortURL)
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)

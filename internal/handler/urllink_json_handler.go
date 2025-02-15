@@ -40,7 +40,7 @@ func (h *URLLinkHandler) HandleGenerateShortURLJson(w http.ResponseWriter, r *ht
 
 	var reqBody requestBody
 	if err := h.decodeJSONBody(r, &reqBody); err != nil || reqBody.URL == "" {
-		http.Error(w, "Некорректное тело запроса. url должно быть строкой", http.StatusBadRequest)
+		http.Error(w, "Некорректное тело запроса. url должно быть json", http.StatusBadRequest)
 		return
 	}
 
@@ -63,13 +63,13 @@ func (h *URLLinkHandler) HandleGenerateShortURLJson(w http.ResponseWriter, r *ht
 
 func (h *URLLinkHandler) HandleGenerateShortURLJsonBatch(w http.ResponseWriter, r *http.Request) {
 	if !h.isContentTypeJSON(r) {
-		http.Error(w, "Content-Type must be application/json", http.StatusBadRequest)
+		http.Error(w, "Content-Type должен быть application/json", http.StatusBadRequest)
 		return
 	}
 
 	var reqBody []batchRequestItem
 	if err := h.decodeJSONBody(r, &reqBody); err != nil || len(reqBody) == 0 {
-		http.Error(w, "Некорректное тело запроса или пустой запрос", http.StatusBadRequest)
+		http.Error(w, "Некорректное тело запроса. url должно быть json", http.StatusBadRequest)
 		return
 	}
 
