@@ -4,13 +4,13 @@ import (
 	"context"
 	"errors"
 	"io"
-	"log"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/physicist2018/url-shortener-go/internal/domain"
 	"github.com/physicist2018/url-shortener-go/internal/repository/repoerrors"
+	"github.com/rs/zerolog"
 )
 
 const (
@@ -18,14 +18,16 @@ const (
 )
 
 type URLLinkHandler struct {
-	service domain.URLLinkServicer
+	service domain.URLLinkService
 	baseURL string
+	log     zerolog.Logger
 }
 
-func NewURLLinkHandler(service domain.URLLinkServicer, baseURL string) *URLLinkHandler {
+func NewURLLinkHandler(service domain.URLLinkService, baseURL string, logger zerolog.Logger) *URLLinkHandler {
 	return &URLLinkHandler{
 		service: service,
 		baseURL: baseURL,
+		log:     logger,
 	}
 }
 
@@ -35,22 +37,29 @@ func (h *URLLinkHandler) ShortenURL(w http.ResponseWriter, r *http.Request) {
 
 	longURLBytes, err := io.ReadAll(r.Body)
 	if err != nil || len(longURLBytes) == 0 {
+		h.log.Info().Msg("Пустое тело запроса или ошибка чтения тела запроса")
 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
 	}
 
 	longURL := string(longURLBytes)
 	urllink, err := h.service.CreateShortURL(ctx, longURL)
-
-	switch {
-	case errors.Is(err, repoerrors.ErrURLAlreadyInDB):
-		fullURL := strings.Join([]string{h.baseURL, urllink.ShortURL}, "/")
-		w.WriteHeader(http.StatusConflict)
-		w.Write([]byte(fullURL))
-	case err != nil:
-		log.Println(err)
-		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-	default:
+	if err != nil {
+		h.log.Info().Msg(err.Error())
+		if errors.Is(err, repoerrors.ErrorShortLinkAlreadyInDB) {
+			fullURL := strings.Join([]string{h.baseURL, urllink.ShortURL}, "/")
+			w.WriteHeader(http.StatusConflict)
+			w.Write([]byte(fullURL))
+			return
+		} else if errors.Is(err, repoerrors.ErrorSQLInternal) {
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		} else {
+			// Остальные ошибки трактуем как BadRequest
+			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+			return
+		}
+	} else {
 		fullURL := strings.Join([]string{h.baseURL, urllink.ShortURL}, "/")
 		w.WriteHeader(http.StatusCreated)
 		w.Write([]byte(fullURL))
@@ -64,8 +73,8 @@ func (h *URLLinkHandler) Redirect(w http.ResponseWriter, r *http.Request) {
 	//shortURL := chi.URLParam(r, "shortURL")
 	path := r.URL.Path
 	shortURL := strings.TrimPrefix(path, "/")
-
 	originalURL, err := h.service.GetOriginalURL(ctx, shortURL)
+
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 		return

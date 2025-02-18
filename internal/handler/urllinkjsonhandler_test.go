@@ -4,10 +4,12 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 
 	"github.com/golang/mock/gomock"
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/physicist2018/url-shortener-go/internal/domain"
@@ -41,7 +43,7 @@ func TestURLLinkHandler_HandleGenerateShortURLJson(t *testing.T) {
 			body:        `{"url": "https://example.com"}`,
 			mockSetup: func(m *service.MockURLLinkServicer) {
 				m.EXPECT().CreateShortURL(gomock.Any(), "https://example.com").
-					Return(&domain.URLLink{ShortURL: "abc123"}, repoerrors.ErrURLAlreadyInDB)
+					Return(&domain.URLLink{ShortURL: "abc123"}, repoerrors.ErrorShortLinkAlreadyInDB)
 			},
 			expectedStatus: http.StatusConflict,
 			expectedBody:   `{"result":"http://localhost/abc123"}` + "\n",
@@ -64,6 +66,7 @@ func TestURLLinkHandler_HandleGenerateShortURLJson(t *testing.T) {
 		},
 	}
 
+	logger := zerolog.New(os.Stdout).Level(zerolog.InfoLevel)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
@@ -72,7 +75,7 @@ func TestURLLinkHandler_HandleGenerateShortURLJson(t *testing.T) {
 			mockService := service.NewMockURLLinkServicer(ctrl)
 			tt.mockSetup(mockService)
 
-			handler := NewURLLinkHandler(mockService, "http://localhost")
+			handler := NewURLLinkHandler(mockService, "http://localhost", logger)
 
 			req := httptest.NewRequest(http.MethodPost, "/shorten", strings.NewReader(tt.body))
 			req.Header.Set("Content-Type", tt.contentType)
@@ -129,6 +132,8 @@ func TestURLLinkHandler_HandleGenerateShortURLJsonBatch(t *testing.T) {
 		},
 	}
 
+	logger := zerolog.New(os.Stdout).Level(zerolog.InfoLevel)
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
@@ -137,7 +142,7 @@ func TestURLLinkHandler_HandleGenerateShortURLJsonBatch(t *testing.T) {
 			mockService := service.NewMockURLLinkServicer(ctrl)
 			tt.mockSetup(mockService)
 
-			handler := NewURLLinkHandler(mockService, "http://localhost")
+			handler := NewURLLinkHandler(mockService, "http://localhost", logger)
 
 			req := httptest.NewRequest(http.MethodPost, "/shorten/batch", strings.NewReader(tt.body))
 			req.Header.Set("Content-Type", tt.contentType)

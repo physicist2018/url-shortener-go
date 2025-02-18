@@ -49,7 +49,7 @@ func (h *URLLinkHandler) HandleGenerateShortURLJson(w http.ResponseWriter, r *ht
 
 	urlModel, err := h.service.CreateShortURL(ctx, reqBody.URL)
 	if err != nil {
-		if errors.Is(err, repoerrors.ErrURLAlreadyInDB) {
+		if errors.Is(err, repoerrors.ErrorShortLinkAlreadyInDB) {
 			h.sendJSONResponse(w, http.StatusConflict, urlModel.ShortURL)
 			return
 		}

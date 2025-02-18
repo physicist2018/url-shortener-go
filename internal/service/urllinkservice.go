@@ -2,22 +2,23 @@ package service
 
 import (
 	"context"
-	"errors"
 
 	"github.com/physicist2018/url-shortener-go/internal/domain"
 	"github.com/physicist2018/url-shortener-go/internal/ports/randomstring"
-	"github.com/physicist2018/url-shortener-go/internal/repository/repoerrors"
+	"github.com/rs/zerolog"
 )
 
 type URLLinkService struct {
+	log       zerolog.Logger
 	generator randomstring.RandomStringGenerator
 	repo      domain.URLLinkRepo
 }
 
-func NewURLLinkService(repo domain.URLLinkRepo, generator randomstring.RandomStringGenerator) *URLLinkService {
+func NewURLLinkService(repo domain.URLLinkRepo, generator randomstring.RandomStringGenerator, logger zerolog.Logger) *URLLinkService {
 	return &URLLinkService{
 		repo:      repo,
 		generator: generator,
+		log:       logger,
 	}
 }
 
@@ -30,19 +31,15 @@ func (u *URLLinkService) CreateShortURL(ctx context.Context, longURL string) (*d
 	}
 	err := u.repo.Store(ctx, link)
 
-	if errors.Is(err, repoerrors.ErrURLAlreadyInDB) {
-		return link, err
-	} else if err != nil {
-		return nil, err
-	}
-
-	return link, nil
+	return link, err
 }
 
 // метод получения оригинальной ссылки
 func (u *URLLinkService) GetOriginalURL(ctx context.Context, shortURL string) (string, error) {
 	link, err := u.repo.Find(ctx, shortURL)
+
 	if err != nil {
+		u.log.Info().Err(err)
 		return "", err
 	}
 

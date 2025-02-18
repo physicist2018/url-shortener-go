@@ -1,20 +1,16 @@
 package main
 
 import (
-	"log"
-	"net/http"
 	"os"
 
-	"github.com/go-chi/chi"
-	"github.com/go-chi/chi/middleware"
 	"github.com/physicist2018/url-shortener-go/internal/config"
 	"github.com/physicist2018/url-shortener-go/internal/domain"
 	"github.com/physicist2018/url-shortener-go/internal/handler"
-	"github.com/physicist2018/url-shortener-go/internal/middlewares/compressor"
-	"github.com/physicist2018/url-shortener-go/internal/middlewares/httplogger"
 	"github.com/physicist2018/url-shortener-go/internal/repository/repofactorymethod"
+	"github.com/physicist2018/url-shortener-go/internal/router"
+	"github.com/physicist2018/url-shortener-go/internal/server"
 	"github.com/physicist2018/url-shortener-go/internal/service"
-	randomstringgenerator "github.com/physicist2018/url-shortener-go/pkg/randomstring_generator"
+	uniquestring "github.com/physicist2018/url-shortener-go/pkg/uniquestring"
 	"github.com/rs/zerolog"
 )
 
@@ -25,55 +21,37 @@ func main() {
 
 	cfg, err := config.Load()
 	if err != nil {
-		logger.Error().Err(err).Send()
-		panic(err)
+		logger.Fatal().Err(err).Msg("Ошибка загрузки конфигурации")
 	}
 
 	logger.Info().Msg(cfg.String())
 
 	logger.Info().Msg("инициализация генератора случайных ссылок")
-	randomStringGenerator := randomstringgenerator.NewRandomStringDefault()
+	randomStringGenerator := uniquestring.NewRandomStringDefault()
 
-	repofactory := repofactorymethod.NewRepofactorymethod()
+	repofactory := repofactorymethod.NewRepoFactoryMethod()
 	var linkRepo domain.URLLinkRepo
 
-	// Надо реализовать InJsonFile storage
 	if cfg.DatabaseDSN != "" {
-		linkRepo, err = repofactory.CreateRepo("postgres", cfg.DatabaseDSN)
-	} else if cfg.FileStoragePath != "" {
-		linkRepo, err = repofactory.CreateRepo("inmemory", cfg.FileStoragePath)
+		linkRepo, err = repofactory.CreateRepo("sqlite", cfg.DatabaseDSN)
 	} else {
 		linkRepo, err = repofactory.CreateRepo("inmemory", cfg.FileStoragePath)
 	}
 
-	//inmemory.NewInMemoryLinkRepository(cfg.FileStoragePath)
 	if err != nil {
-		logger.Error().Err(err).Send()
-		panic(err)
+		logger.Fatal().Err(err).Msg("Ошибка инициализации репозитория")
 	}
-	defer linkRepo.Close()
+	defer func() {
+		if err := linkRepo.Close(); err != nil {
+			logger.Error().Err(err).Msg("Ошибка при закрытии репозитория")
+		}
+	}()
 
-	linkService := service.NewURLLinkService(linkRepo, randomStringGenerator)
-	linkHandler := handler.NewURLLinkHandler(linkService, cfg.BaseURLServer)
+	linkService := service.NewURLLinkService(linkRepo, randomStringGenerator, logger)
+	linkHandler := handler.NewURLLinkHandler(linkService, cfg.BaseURLServer, logger)
 
-	r := chi.NewRouter()
-	r.Use(httplogger.LoggerMiddleware(&logger))
-	r.Use(compressor.RequestDecompressionMiddleware)
-	r.Use(compressor.ResponseCompressionMiddleware(compressor.BestCompression))
-	r.Use(middleware.AllowContentType("text/plain", "application/json", "text/html", "application/x-gzip"))
-	r.Use(middleware.Recoverer)
+	r := router.NewRouter(linkHandler, logger)
 
-	/// ручки управления
-	r.Post("/", linkHandler.ShortenURL)
-	r.Post("/api/shorten", linkHandler.HandleGenerateShortURLJson)
-	r.Post("/api/shorten/batch", linkHandler.HandleGenerateShortURLJsonBatch)
-	r.Get("/{shortURL}", linkHandler.Redirect)
-	r.Get("/ping", linkHandler.PingHandler)
-
-	server := &http.Server{
-		Addr:    cfg.ServerAddr,
-		Handler: r,
-	}
-	logger.Info().Msg("Запуск сервера")
-	log.Fatal(server.ListenAndServe())
+	srv := server.NewServer(cfg.ServerAddr, r, logger)
+	srv.Start()
 }

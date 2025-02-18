@@ -1,4 +1,4 @@
-package randomstringgenerator
+package uniquestring
 
 import (
 	"math/rand"

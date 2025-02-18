@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	"github.com/physicist2018/url-shortener-go/internal/domain"
+	"github.com/physicist2018/url-shortener-go/internal/repository/repoerrors"
 )
 
 type InMemoryLinkRepository struct {
@@ -51,8 +52,11 @@ func (m *InMemoryLinkRepository) Store(ctx context.Context, urllink *domain.URLL
 	}
 
 	_, err = m.dbfile.Write(append(data, '\n'))
+	if err != nil {
+		return errors.Join(repoerrors.ErrorInsertShortLink, err)
+	}
 
-	return err
+	return nil
 }
 
 func (m *InMemoryLinkRepository) Find(ctx context.Context, shortURL string) (*domain.URLLink, error) {
@@ -61,7 +65,7 @@ func (m *InMemoryLinkRepository) Find(ctx context.Context, shortURL string) (*do
 
 	urllink, exists := m.links[shortURL]
 	if !exists {
-		return nil, errors.New("ссылка не найдена")
+		return nil, repoerrors.ErrorShortLinkNotFound
 	}
 
 	return urllink, nil
@@ -97,5 +101,9 @@ func (m *InMemoryLinkRepository) load() error {
 }
 
 func (m *InMemoryLinkRepository) Close() error {
-	return m.dbfile.Close()
+	// Вдруг файл не был открыт
+	if m.dbfile != nil {
+		return m.dbfile.Close()
+	}
+	return nil
 }

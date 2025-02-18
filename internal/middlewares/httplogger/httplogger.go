@@ -59,7 +59,7 @@ func LoggerMiddleware(logger *zerolog.Logger) func(http.Handler) http.Handler {
 
 			// если сервер выдаст ошибку, то в этом случае все равно выведет статус
 			defer func() {
-				logger.Info().
+				logger.Debug().
 					Str("uri", uri).
 					Str("method", method).
 					Int("status", respData.status).

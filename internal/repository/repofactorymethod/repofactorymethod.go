@@ -7,25 +7,25 @@ import (
 	"github.com/physicist2018/url-shortener-go/internal/repository/inmemory"
 )
 
-type Repofactorymethod struct{}
+type RepoFactoryMethod struct{}
 
-func NewRepofactorymethod() *Repofactorymethod {
-	return &Repofactorymethod{}
+func NewRepoFactoryMethod() *RepoFactoryMethod {
+	return &RepoFactoryMethod{}
 }
-func (r *Repofactorymethod) createInMemoryRepo(dbname string) (*inmemory.InMemoryLinkRepository, error) {
+func (r *RepoFactoryMethod) createInMemoryRepo(dbname string) (*inmemory.InMemoryLinkRepository, error) {
 	return inmemory.NewInMemoryLinkRepository(dbname)
 }
 
-func (r *Repofactorymethod) createSQLiteRepo(dbname string) (*sqlitedbrepo.SQLiteDBLinkRepository, error) {
+func (r *RepoFactoryMethod) createSQLiteRepo(dbname string) (*sqlitedbrepo.SQLiteDBLinkRepository, error) {
 	return sqlitedbrepo.NewDBLinkRepository(dbname)
 }
 
-func (r *Repofactorymethod) createPostgresRepo(connStr string) (*postgresdbrepo.PostgresDBLinkRepository, error) {
+func (r *RepoFactoryMethod) createPostgresRepo(connStr string) (*postgresdbrepo.PostgresDBLinkRepository, error) {
 	return postgresdbrepo.NewDBLinkRepository(connStr)
 }
 
 // Фабричный метод для создания репозитория
-func (r *Repofactorymethod) CreateRepo(repoType string, params string) (domain.URLLinkRepo, error) {
+func (r *RepoFactoryMethod) CreateRepo(repoType string, params string) (domain.URLLinkRepo, error) {
 	switch repoType {
 	case "inmemory":
 		return r.createInMemoryRepo(params)

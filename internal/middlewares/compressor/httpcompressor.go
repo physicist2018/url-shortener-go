@@ -14,11 +14,19 @@ const (
 // Обертка для ResponseWriter, чтобы перехватывать вывод и сжимать его.
 type gzipResponseWriter struct {
 	writer io.Writer
-	http.ResponseWriter
+	rw     http.ResponseWriter
 }
 
 func (w *gzipResponseWriter) Write(b []byte) (int, error) {
 	return w.writer.Write(b)
+}
+
+func (w *gzipResponseWriter) WriteHeader(statusCode int) {
+	w.rw.WriteHeader(statusCode)
+}
+
+func (w *gzipResponseWriter) Header() http.Header {
+	return w.rw.Header()
 }
 
 func RequestDecompressionMiddleware(next http.Handler) http.Handler {
@@ -52,7 +60,7 @@ func ResponseCompressionMiddleware(compressionLevel int) func(http.Handler) http
 					return
 				}
 				defer gzipWriter.Close()
-				gzipResponseWriter := &gzipResponseWriter{writer: gzipWriter, ResponseWriter: w}
+				gzipResponseWriter := &gzipResponseWriter{writer: gzipWriter, rw: w}
 				next.ServeHTTP(gzipResponseWriter, r)
 			} else {
 				next.ServeHTTP(w, r)
