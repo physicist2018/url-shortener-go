@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -9,6 +10,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/physicist2018/url-shortener-go/internal/domain"
 	"github.com/physicist2018/url-shortener-go/internal/repository/repoerrors"
 )
 
@@ -30,6 +32,11 @@ type (
 		ID     string `json:"correlation_id"`
 		Result string `json:"short_url"`
 	}
+
+	batchResponseListPerUser struct {
+		ShortURL string `json:"short_url"`
+		LongURL  string `json:"original_url"`
+	}
 )
 
 func (h *URLLinkHandler) HandleGenerateShortURLJson(w http.ResponseWriter, r *http.Request) {
@@ -47,7 +54,7 @@ func (h *URLLinkHandler) HandleGenerateShortURLJson(w http.ResponseWriter, r *ht
 	ctx, cancel := context.WithTimeout(r.Context(), RequestResponseTimeout)
 	defer cancel()
 
-	urlModel, err := h.service.CreateShortURL(ctx, reqBody.URL)
+	urlModel, err := h.service.CreateShortURL(ctx, domain.URLLink{LongURL: reqBody.URL})
 	if err != nil {
 		if errors.Is(err, repoerrors.ErrorShortLinkAlreadyInDB) {
 			h.sendJSONResponse(w, http.StatusConflict, urlModel.ShortURL)
@@ -75,7 +82,7 @@ func (h *URLLinkHandler) HandleGenerateShortURLJsonBatch(w http.ResponseWriter, 
 
 	respBody := make([]batchResponseItem, len(reqBody))
 	for i, req := range reqBody {
-		urlModel, err := h.service.CreateShortURL(r.Context(), req.URL)
+		urlModel, err := h.service.CreateShortURL(r.Context(), domain.URLLink{LongURL: req.URL})
 		if err != nil {
 			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 			return
@@ -87,6 +94,38 @@ func (h *URLLinkHandler) HandleGenerateShortURLJsonBatch(w http.ResponseWriter, 
 	}
 
 	h.sendBatchJSONResponse(w, http.StatusCreated, respBody)
+}
+
+func (h *URLLinkHandler) HandleGetAllShortedURLsForUserJson(w http.ResponseWriter, r *http.Request) {
+	userID := r.Context().Value("userID").(string)
+	if !h.isContentTypeJSON(r) {
+		http.Error(w, "Content-Type должен быть application/json", http.StatusBadRequest)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), RequestResponseTimeout)
+	defer cancel()
+
+	urls, err := h.service.FindAll(ctx, userID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			http.Error(w, http.StatusText(http.StatusNoContent), http.StatusNoContent)
+			return
+		}
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		return
+	}
+
+	urlsPerUser := make([]batchResponseListPerUser, len(urls))
+	for i, url := range urls {
+		urlsPerUser[i] = batchResponseListPerUser{
+			ShortURL: fmt.Sprintf("%s/%s", h.baseURL, url.ShortURL),
+			LongURL:  url.LongURL,
+		}
+	}
+
+	h.sendBatchJSONResponseForUser(w, http.StatusOK, urlsPerUser)
+
 }
 
 // Вспомогательные методы
@@ -109,6 +148,12 @@ func (h *URLLinkHandler) sendJSONResponse(w http.ResponseWriter, statusCode int,
 }
 
 func (h *URLLinkHandler) sendBatchJSONResponse(w http.ResponseWriter, statusCode int, respBody []batchResponseItem) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+	json.NewEncoder(w).Encode(respBody)
+}
+
+func (h *URLLinkHandler) sendBatchJSONResponseForUser(w http.ResponseWriter, statusCode int, respBody []batchResponseListPerUser) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
 	json.NewEncoder(w).Encode(respBody)

@@ -13,4 +13,5 @@ var (
 	ErrorPingDB                 = fmt.Errorf("ошибка пинга базы данных: ")
 	ErrorTableCreate            = fmt.Errorf("ошибка создания таблицы: ")
 	ErrorConnectingDB           = fmt.Errorf("ошибка подключения к БД: ")
+	ErrorSelectShortLinks       = fmt.Errorf("ошибка выборки коротких ссылок для пользователя ")
 )

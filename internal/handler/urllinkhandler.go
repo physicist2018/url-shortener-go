@@ -32,6 +32,7 @@ func NewURLLinkHandler(service domain.URLLinkService, baseURL string, logger zer
 }
 
 func (h *URLLinkHandler) ShortenURL(w http.ResponseWriter, r *http.Request) {
+	userID := r.Context().Value("userID").(string)
 	ctx, cancel := context.WithTimeout(r.Context(), RequestResponseTimeout)
 	defer cancel()
 
@@ -43,7 +44,7 @@ func (h *URLLinkHandler) ShortenURL(w http.ResponseWriter, r *http.Request) {
 	}
 
 	longURL := string(longURLBytes)
-	urllink, err := h.service.CreateShortURL(ctx, longURL)
+	urllink, err := h.service.CreateShortURL(ctx, domain.URLLink{LongURL: longURL, UserID: userID})
 	if err != nil {
 		h.log.Info().Msg(err.Error())
 		if errors.Is(err, repoerrors.ErrorShortLinkAlreadyInDB) {
@@ -67,20 +68,21 @@ func (h *URLLinkHandler) ShortenURL(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *URLLinkHandler) Redirect(w http.ResponseWriter, r *http.Request) {
+	userID := r.Context().Value("userID").(string)
 	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
 	defer cancel()
 
 	//shortURL := chi.URLParam(r, "shortURL")
 	path := r.URL.Path
 	shortURL := strings.TrimPrefix(path, "/")
-	originalURL, err := h.service.GetOriginalURL(ctx, shortURL)
+	urllink, err := h.service.GetOriginalURL(ctx, domain.URLLink{ShortURL: shortURL, UserID: userID})
 
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 		return
 	}
 
-	w.Header().Set("Location", originalURL)
+	w.Header().Set("Location", urllink.LongURL)
 	w.WriteHeader(http.StatusTemporaryRedirect)
 }
 

@@ -23,27 +23,31 @@ func NewURLLinkService(repo domain.URLLinkRepo, generator randomstring.RandomStr
 }
 
 // Метод создания короткой ссылки
-func (u *URLLinkService) CreateShortURL(ctx context.Context, longURL string) (*domain.URLLink, error) {
+func (u *URLLinkService) CreateShortURL(ctx context.Context, link domain.URLLink) (domain.URLLink, error) {
 	shortURL := u.generator.GenerateRandomString()
-	link := &domain.URLLink{
+	urllink := domain.URLLink{
 		ShortURL: shortURL,
-		LongURL:  longURL,
+		LongURL:  link.LongURL,
+		UserID:   link.UserID,
 	}
-	err := u.repo.Store(ctx, link)
 
-	return link, err
+	return u.repo.Store(ctx, urllink)
 }
 
 // метод получения оригинальной ссылки
-func (u *URLLinkService) GetOriginalURL(ctx context.Context, shortURL string) (string, error) {
-	link, err := u.repo.Find(ctx, shortURL)
+func (u *URLLinkService) GetOriginalURL(ctx context.Context, link domain.URLLink) (domain.URLLink, error) {
+	link, err := u.repo.Find(ctx, link.ShortURL, link.UserID)
 
 	if err != nil {
 		u.log.Info().Err(err)
-		return "", err
+		return domain.URLLink{}, err
 	}
 
-	return link.LongURL, nil
+	return link, nil
+}
+
+func (u *URLLinkService) FindAll(ctx context.Context, userID string) ([]domain.URLLink, error) {
+	return u.repo.FindAll(ctx, userID)
 }
 
 // проверка соединения

@@ -13,14 +13,14 @@ import (
 )
 
 type InMemoryLinkRepository struct {
-	links  map[string]*domain.URLLink
+	links  map[string]domain.URLLink
 	mu     sync.RWMutex
 	dbfile *os.File
 }
 
 func NewInMemoryLinkRepository(dbFilePath string) (*InMemoryLinkRepository, error) {
 	repo := &InMemoryLinkRepository{
-		links: make(map[string]*domain.URLLink),
+		links: make(map[string]domain.URLLink),
 	}
 
 	// Открываем файл для добавления данных
@@ -39,7 +39,7 @@ func NewInMemoryLinkRepository(dbFilePath string) (*InMemoryLinkRepository, erro
 	return repo, nil
 }
 
-func (m *InMemoryLinkRepository) Store(ctx context.Context, urllink *domain.URLLink) error {
+func (m *InMemoryLinkRepository) Store(ctx context.Context, urllink domain.URLLink) (domain.URLLink, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -48,27 +48,32 @@ func (m *InMemoryLinkRepository) Store(ctx context.Context, urllink *domain.URLL
 	// Добавляем данные в файл
 	data, err := json.Marshal(urllink)
 	if err != nil {
-		return err
+		return domain.URLLink{}, err
 	}
 
 	_, err = m.dbfile.Write(append(data, '\n'))
 	if err != nil {
-		return errors.Join(repoerrors.ErrorInsertShortLink, err)
+		return domain.URLLink{}, errors.Join(repoerrors.ErrorInsertShortLink, err)
 	}
 
-	return nil
+	return urllink, nil
 }
 
-func (m *InMemoryLinkRepository) Find(ctx context.Context, shortURL string) (*domain.URLLink, error) {
+func (m *InMemoryLinkRepository) Find(ctx context.Context, shortURL, userID string) (domain.URLLink, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
 	urllink, exists := m.links[shortURL]
 	if !exists {
-		return nil, repoerrors.ErrorShortLinkNotFound
+		return domain.URLLink{}, repoerrors.ErrorShortLinkNotFound
 	}
 
 	return urllink, nil
+}
+
+func (m *InMemoryLinkRepository) FindAll(ctx context.Context, userID string) ([]domain.URLLink, error) {
+
+	return nil, nil
 }
 
 func (m *InMemoryLinkRepository) Ping(ctx context.Context) error {
@@ -95,7 +100,7 @@ func (m *InMemoryLinkRepository) load() error {
 		if err := json.Unmarshal([]byte(line), &urllink); err != nil {
 			return err
 		}
-		m.links[urllink.ShortURL] = &urllink
+		m.links[urllink.ShortURL] = urllink
 	}
 	return nil
 }

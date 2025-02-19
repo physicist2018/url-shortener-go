@@ -33,7 +33,7 @@ func main() {
 	var linkRepo domain.URLLinkRepo
 
 	if cfg.DatabaseDSN != "" {
-		linkRepo, err = repofactory.CreateRepo("postgres", cfg.DatabaseDSN)
+		linkRepo, err = repofactory.CreateRepo("sqlite", cfg.DatabaseDSN)
 	} else {
 		linkRepo, err = repofactory.CreateRepo("inmemory", cfg.FileStoragePath)
 	}
