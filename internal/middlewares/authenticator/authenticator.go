@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/physicist2018/url-shortener-go/internal/domain"
 )
 
 var verySecretKey = []byte("я памятник себе воздвиг нерукотоврный")
@@ -40,7 +41,7 @@ func AuthMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		ctx := context.WithValue(r.Context(), "userID", userID)
+		ctx := context.WithValue(r.Context(), domain.UserIDKey, userID)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -54,7 +55,7 @@ func AuthMiddlewareFunc(next http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 
-		ctx := context.WithValue(r.Context(), "userID", userID)
+		ctx := context.WithValue(r.Context(), domain.UserIDKey, userID)
 		next(w, r.WithContext(ctx))
 	})
 }

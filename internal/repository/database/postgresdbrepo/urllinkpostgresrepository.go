@@ -63,7 +63,7 @@ func (d *PostgresDBLinkRepository) Store(ctx context.Context, urllink domain.URL
 
 	if pqError.Code == "23505" {
 		querySelect := `SELECT user_id, short_url, original_url FROM links WHERE original_url = $1 LIMIT 1;`
-		if err := d.db.GetContext(ctx, urllink, querySelect, urllink.LongURL, urllink.UserID); err != nil {
+		if err := d.db.GetContext(ctx, urllink, querySelect, urllink.LongURL); err != nil {
 			return domain.URLLink{}, errors.Join(repoerrors.ErrorSelectExistedShortLink, err)
 		}
 		return urllink, errors.Join(repoerrors.ErrorShortLinkAlreadyInDB, err)

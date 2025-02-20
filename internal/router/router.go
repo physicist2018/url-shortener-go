@@ -27,6 +27,6 @@ func NewRouter(linkHandler *handler.URLLinkHandler, logger zerolog.Logger) *chi.
 	r.Post("/api/shorten/batch", authenticator.AuthMiddlewareFunc(linkHandler.HandleGenerateShortURLJsonBatch))
 	r.Get("/{shortURL}", linkHandler.Redirect)
 	r.Get("/ping", linkHandler.PingHandler)
-	r.Get("/api/user/urls", authenticator.AuthMiddlewareFunc(linkHandler.HandleGetAllShortedURLsForUserJson))
+	r.Get("/api/user/urls", authenticator.AuthMiddlewareFunc(linkHandler.HandleGetAllShortedURLsForUserJSON))
 	return r
 }
