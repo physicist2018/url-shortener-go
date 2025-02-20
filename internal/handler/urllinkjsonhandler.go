@@ -96,10 +96,6 @@ func (h *URLLinkHandler) HandleGenerateShortURLJsonBatch(w http.ResponseWriter, 
 
 func (h *URLLinkHandler) HandleGetAllShortedURLsForUserJSON(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(domain.UserIDKey).(string)
-	// if !h.isContentTypeJSON(r) {
-	// 	http.Error(w, "Content-Type должен быть application/json", http.StatusBadRequest)
-	// 	return
-	// }
 
 	ctx, cancel := context.WithTimeout(r.Context(), RequestResponseTimeout)
 	defer cancel()
@@ -122,7 +118,11 @@ func (h *URLLinkHandler) HandleGetAllShortedURLsForUserJSON(w http.ResponseWrite
 		}
 	}
 
-	h.sendBatchJSONResponseForUser(w, http.StatusOK, urlsPerUser)
+	if len(urlsPerUser) > 0 {
+		h.sendBatchJSONResponseForUser(w, http.StatusOK, urlsPerUser)
+		return
+	}
+	h.sendBatchJSONResponseForUser(w, http.StatusNoContent, urlsPerUser)
 
 }
 
@@ -154,5 +154,7 @@ func (h *URLLinkHandler) sendBatchJSONResponse(w http.ResponseWriter, statusCode
 func (h *URLLinkHandler) sendBatchJSONResponseForUser(w http.ResponseWriter, statusCode int, respBody []batchResponseListPerUser) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
-	json.NewEncoder(w).Encode(respBody)
+	if len(respBody) > 0 {
+		json.NewEncoder(w).Encode(respBody)
+	}
 }
