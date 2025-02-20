@@ -96,10 +96,10 @@ func (h *URLLinkHandler) HandleGenerateShortURLJsonBatch(w http.ResponseWriter, 
 
 func (h *URLLinkHandler) HandleGetAllShortedURLsForUserJSON(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(domain.UserIDKey).(string)
-	if !h.isContentTypeJSON(r) {
-		http.Error(w, "Content-Type должен быть application/json", http.StatusBadRequest)
-		return
-	}
+	// if !h.isContentTypeJSON(r) {
+	// 	http.Error(w, "Content-Type должен быть application/json", http.StatusBadRequest)
+	// 	return
+	// }
 
 	ctx, cancel := context.WithTimeout(r.Context(), RequestResponseTimeout)
 	defer cancel()
