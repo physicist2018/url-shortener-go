@@ -66,7 +66,7 @@ func (d *PostgresDBLinkRepository) Store(ctx context.Context, urllink domain.URL
 		if err := d.db.GetContext(ctx, urllink, querySelect, urllink.LongURL, urllink.UserID); err != nil {
 			return domain.URLLink{}, errors.Join(repoerrors.ErrorSelectExistedShortLink, err)
 		}
-		return domain.URLLink{}, errors.Join(repoerrors.ErrorShortLinkAlreadyInDB, err)
+		return urllink, errors.Join(repoerrors.ErrorShortLinkAlreadyInDB, err)
 	}
 
 	// Обработка других ошибок Postgres
