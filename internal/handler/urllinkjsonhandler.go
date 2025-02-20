@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 
@@ -60,7 +59,6 @@ func (h *URLLinkHandler) HandleGenerateShortURLJson(w http.ResponseWriter, r *ht
 			h.sendJSONResponse(w, http.StatusConflict, urlModel.ShortURL)
 			return
 		}
-		log.Println(err)
 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
 	}

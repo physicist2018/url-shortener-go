@@ -3,6 +3,7 @@ package postgresdbrepo
 import (
 	"context"
 	"database/sql"
+	_ "embed"
 	"errors"
 	"time"
 
@@ -13,6 +14,9 @@ import (
 	"github.com/physicist2018/url-shortener-go/internal/domain"
 	"github.com/physicist2018/url-shortener-go/internal/repository/repoerrors"
 )
+
+//go:embed linktable.sql
+var queryCreateTable string
 
 type PostgresDBLinkRepository struct {
 	db *sqlx.DB
@@ -58,7 +62,7 @@ func (d *PostgresDBLinkRepository) Store(ctx context.Context, urllink domain.URL
 	}
 
 	if pqError.Code == "23505" {
-		querySelect := `SELECT user_id, short_url, original_url FROM links WHERE original_url = $1 AND user_id = $2 LIMIT 1;`
+		querySelect := `SELECT user_id, short_url, original_url FROM links WHERE original_url = $1 LIMIT 1;`
 		if err := d.db.GetContext(ctx, urllink, querySelect, urllink.LongURL, urllink.UserID); err != nil {
 			return domain.URLLink{}, errors.Join(repoerrors.ErrorSelectExistedShortLink, err)
 		}
@@ -70,7 +74,7 @@ func (d *PostgresDBLinkRepository) Store(ctx context.Context, urllink domain.URL
 }
 
 // TODO change function input parameters
-func (d *PostgresDBLinkRepository) Find(ctx context.Context, shortURL, userID string) (domain.URLLink, error) {
+func (d *PostgresDBLinkRepository) Find(ctx context.Context, shortURL string) (domain.URLLink, error) {
 	query := `SELECT user_id, short_url, original_url FROM links WHERE short_url=$1 AND user_id=$2 LIMIT 1;`
 	var urllink domain.URLLink
 	if err := d.db.GetContext(ctx, &urllink, query, shortURL, ""); err != nil {
@@ -108,7 +112,7 @@ func (d *PostgresDBLinkRepository) Ping(ctx context.Context) error {
 func (d *PostgresDBLinkRepository) create(ctx context.Context) error {
 	query := `CREATE TABLE IF NOT EXISTS links (
 		id SERIAL PRIMARY KEY,
-        user_id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
         short_url TEXT NOT NULL,
         original_url TEXT NOT NULL UNIQUE);`
 	if _, err := d.db.ExecContext(ctx, query); err != nil {

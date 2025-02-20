@@ -36,7 +36,7 @@ func (u *URLLinkService) CreateShortURL(ctx context.Context, link domain.URLLink
 
 // метод получения оригинальной ссылки
 func (u *URLLinkService) GetOriginalURL(ctx context.Context, link domain.URLLink) (domain.URLLink, error) {
-	link, err := u.repo.Find(ctx, link.ShortURL, link.UserID)
+	link, err := u.repo.Find(ctx, link.ShortURL)
 
 	if err != nil {
 		u.log.Info().Err(err)

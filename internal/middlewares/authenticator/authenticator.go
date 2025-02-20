@@ -15,24 +15,47 @@ import (
 
 var verySecretKey = []byte("я памятник себе воздвиг нерукотоврный")
 
+// Вспомогательная функция для проверки куки и получения userID
+func checkUserCookie(w http.ResponseWriter, r *http.Request) (string, error) {
+	cookie, err := r.Cookie("user_session")
+	if err != nil || cookie == nil {
+		cookie, userID := createUserCookie()
+		http.SetCookie(w, cookie)
+		return userID, nil
+	}
+
+	userID, valid := validateUserCookie(cookie)
+	if !valid {
+		return "", fmt.Errorf("unauthorized")
+	}
+	return userID, nil
+}
+
+// Мидлварь для авторизации на уровне роутера
 func AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var userID string
-		cookie, err := r.Cookie("user_session")
-		if err != nil || cookie == nil {
-			cookie, userID = createUserCookie()
-			http.SetCookie(w, cookie)
-		} else {
-			var valid bool
-			userID, valid = validateUserCookie(cookie)
-			if !valid {
-				http.Error(w, "Unauthorized", http.StatusUnauthorized)
-				return
-			}
+		userID, err := checkUserCookie(w, r)
+		if err != nil {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
 		}
 
 		ctx := context.WithValue(r.Context(), "userID", userID)
 		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+// Мидлварь для авторизации на уровне конкретной ручки
+func AuthMiddlewareFunc(next http.HandlerFunc) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		userID, err := checkUserCookie(w, r)
+		if err != nil {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		ctx := context.WithValue(r.Context(), "userID", userID)
+		next(w, r.WithContext(ctx))
 	})
 }
 

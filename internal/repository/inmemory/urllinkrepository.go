@@ -59,7 +59,7 @@ func (m *InMemoryLinkRepository) Store(ctx context.Context, urllink domain.URLLi
 	return urllink, nil
 }
 
-func (m *InMemoryLinkRepository) Find(ctx context.Context, shortURL, userID string) (domain.URLLink, error) {
+func (m *InMemoryLinkRepository) Find(ctx context.Context, shortURL string) (domain.URLLink, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 

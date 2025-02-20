@@ -68,14 +68,12 @@ func (h *URLLinkHandler) ShortenURL(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *URLLinkHandler) Redirect(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value("userID").(string)
 	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
 	defer cancel()
 
-	//shortURL := chi.URLParam(r, "shortURL")
 	path := r.URL.Path
 	shortURL := strings.TrimPrefix(path, "/")
-	urllink, err := h.service.GetOriginalURL(ctx, domain.URLLink{ShortURL: shortURL, UserID: userID})
+	urllink, err := h.service.GetOriginalURL(ctx, domain.URLLink{ShortURL: shortURL})
 
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)

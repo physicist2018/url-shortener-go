@@ -36,33 +36,48 @@ func (m *MockURLLinkServicer) EXPECT() *MockURLLinkServicerMockRecorder {
 }
 
 // CreateShortURL mocks base method.
-func (m *MockURLLinkServicer) CreateShortURL(ctx context.Context, longURL string) (*domain.URLLink, error) {
+func (m *MockURLLinkServicer) CreateShortURL(ctx context.Context, link domain.URLLink) (domain.URLLink, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateShortURL", ctx, longURL)
-	ret0, _ := ret[0].(*domain.URLLink)
+	ret := m.ctrl.Call(m, "CreateShortURL", ctx, link)
+	ret0, _ := ret[0].(domain.URLLink)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateShortURL indicates an expected call of CreateShortURL.
-func (mr *MockURLLinkServicerMockRecorder) CreateShortURL(ctx, longURL interface{}) *gomock.Call {
+func (mr *MockURLLinkServicerMockRecorder) CreateShortURL(ctx, link interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateShortURL", reflect.TypeOf((*MockURLLinkServicer)(nil).CreateShortURL), ctx, longURL)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateShortURL", reflect.TypeOf((*MockURLLinkServicer)(nil).CreateShortURL), ctx, link)
 }
 
 // GetOriginalURL mocks base method.
-func (m *MockURLLinkServicer) GetOriginalURL(ctx context.Context, shortURL string) (string, error) {
+func (m *MockURLLinkServicer) GetOriginalURL(ctx context.Context, link domain.URLLink) (domain.URLLink, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetOriginalURL", ctx, shortURL)
-	ret0, _ := ret[0].(string)
+	ret := m.ctrl.Call(m, "GetOriginalURL", ctx, link)
+	ret0, _ := ret[0].(domain.URLLink)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetOriginalURL indicates an expected call of GetOriginalURL.
-func (mr *MockURLLinkServicerMockRecorder) GetOriginalURL(ctx, shortURL interface{}) *gomock.Call {
+func (mr *MockURLLinkServicerMockRecorder) GetOriginalURL(ctx, link interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOriginalURL", reflect.TypeOf((*MockURLLinkServicer)(nil).GetOriginalURL), ctx, shortURL)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOriginalURL", reflect.TypeOf((*MockURLLinkServicer)(nil).GetOriginalURL), ctx, link)
+}
+
+// GetOriginalURL mocks base method.
+func (m *MockURLLinkServicer) FindAll(ctx context.Context, userID string) ([]domain.URLLink, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FindAll", ctx, userID)
+	ret0, _ := ret[0].([]domain.URLLink)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetOriginalURL indicates an expected call of GetOriginalURL.
+func (mr *MockURLLinkServicerMockRecorder) FindAll(ctx, userID interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindAll", reflect.TypeOf((*MockURLLinkServicer)(nil).GetOriginalURL), ctx, userID)
 }
 
 // Ping mocks base method.
