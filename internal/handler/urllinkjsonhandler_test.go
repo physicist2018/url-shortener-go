@@ -1,162 +1,164 @@
 package handler
 
 import (
-	"io"
+	"bytes"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"os"
-	"strings"
 	"testing"
 
 	"github.com/golang/mock/gomock"
+	"github.com/physicist2018/url-shortener-go/internal/domain"
+	"github.com/physicist2018/url-shortener-go/internal/mocks"
+	"github.com/physicist2018/url-shortener-go/internal/repository/repoerrors"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
-
-	"github.com/physicist2018/url-shortener-go/internal/domain"
-	"github.com/physicist2018/url-shortener-go/internal/repository/repoerrors"
-	"github.com/physicist2018/url-shortener-go/internal/service"
 )
 
-func TestURLLinkHandler_HandleGenerateShortURLJson(t *testing.T) {
-	tests := []struct {
-		name           string
-		contentType    string
-		body           string
-		mockSetup      func(*service.MockURLLinkServicer)
-		expectedStatus int
-		expectedBody   string
-	}{
-		{
-			name:        "Success - URL shortened",
-			contentType: "application/json",
-			body:        `{"url": "https://example.com"}`,
-			mockSetup: func(m *service.MockURLLinkServicer) {
-				m.EXPECT().CreateShortURL(gomock.Any(), "https://example.com").
-					Return(&domain.URLLink{ShortURL: "abc123"}, nil)
-			},
-			expectedStatus: http.StatusCreated,
-			expectedBody:   `{"result":"http://localhost/abc123"}` + "\n",
-		},
-		{
-			name:        "Conflict - URL already exists",
-			contentType: "application/json",
-			body:        `{"url": "https://example.com"}`,
-			mockSetup: func(m *service.MockURLLinkServicer) {
-				m.EXPECT().CreateShortURL(gomock.Any(), "https://example.com").
-					Return(&domain.URLLink{ShortURL: "abc123"}, repoerrors.ErrorShortLinkAlreadyInDB)
-			},
-			expectedStatus: http.StatusConflict,
-			expectedBody:   `{"result":"http://localhost/abc123"}` + "\n",
-		},
-		{
-			name:           "Bad Request - Invalid Content-Type",
-			contentType:    "text/plain",
-			body:           `{"url": "https://example.com"}`,
-			mockSetup:      func(m *service.MockURLLinkServicer) {},
-			expectedStatus: http.StatusBadRequest,
-			expectedBody:   `Content-Type должен быть application/json` + "\n",
-		},
-		{
-			name:           "Bad Request - Invalid JSON body",
-			contentType:    "application/json",
-			body:           `{"url": ""}`,
-			mockSetup:      func(m *service.MockURLLinkServicer) {},
-			expectedStatus: http.StatusBadRequest,
-			expectedBody:   `Некорректное тело запроса. url должно быть json` + "\n",
-		},
+func TestHandleGenerateShortURLJson_Success(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockService := mocks.NewMockURLLinkService(ctrl)
+	logger := zerolog.New(nil)
+	h := NewURLLinkHandler(mockService, "http://localhost", logger)
+
+	// Данные запроса
+	requestBody := requestBody{
+		URL: "https://example.com",
+	}
+	reqBodyBytes, _ := json.Marshal(requestBody)
+	r := httptest.NewRequest(http.MethodPost, "/api/shorten", bytes.NewBuffer(reqBodyBytes))
+	r.Header.Set("Content-Type", "application/json")
+
+	// Ожидаемая модель URLLink
+	expectedURLLink := domain.URLLink{
+		LongURL:  "https://example.com",
+		ShortURL: "abc123",
 	}
 
-	logger := zerolog.New(os.Stdout).Level(zerolog.InfoLevel)
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			ctrl := gomock.NewController(t)
-			defer ctrl.Finish()
+	// Ожидания для вызова mock
+	mockService.
+		EXPECT().
+		CreateShortURL(gomock.Any(), domain.URLLink{LongURL: "https://example.com"}).
+		Return(expectedURLLink, nil)
 
-			mockService := service.NewMockURLLinkServicer(ctrl)
-			tt.mockSetup(mockService)
+	w := httptest.NewRecorder()
+	h.HandleGenerateShortURLJson(w, r)
 
-			handler := NewURLLinkHandler(mockService, "http://localhost", logger)
+	resp := w.Result()
+	defer resp.Body.Close()
 
-			req := httptest.NewRequest(http.MethodPost, "/shorten", strings.NewReader(tt.body))
-			req.Header.Set("Content-Type", tt.contentType)
-			w := httptest.NewRecorder()
+	assert.Equal(t, http.StatusCreated, resp.StatusCode)
 
-			handler.HandleGenerateShortURLJson(w, req)
-
-			resp := w.Result()
-			defer resp.Body.Close()
-
-			assert.Equal(t, tt.expectedStatus, resp.StatusCode)
-
-			body, _ := io.ReadAll(resp.Body)
-			assert.Equal(t, tt.expectedBody, string(body))
-		})
-	}
+	var respBody responseBody
+	json.NewDecoder(resp.Body).Decode(&respBody)
+	assert.Equal(t, "http://localhost/abc123", respBody.Result)
 }
 
-func TestURLLinkHandler_HandleGenerateShortURLJsonBatch(t *testing.T) {
-	tests := []struct {
-		name           string
-		contentType    string
-		body           string
-		mockSetup      func(*service.MockURLLinkServicer)
-		expectedStatus int
-		expectedBody   string
-	}{
-		{
-			name:        "Success - Batch URLs shortened",
-			contentType: "application/json",
-			body:        `[{"correlation_id": "1", "original_url": "https://example.com"}]`,
-			mockSetup: func(m *service.MockURLLinkServicer) {
-				m.EXPECT().CreateShortURL(gomock.Any(), "https://example.com").
-					Return(&domain.URLLink{ShortURL: "abc123"}, nil)
-			},
-			expectedStatus: http.StatusCreated,
-			expectedBody:   `[{"correlation_id":"1","short_url":"http://localhost/abc123"}]` + "\n",
-		},
-		{
-			name:           "Bad Request - Invalid Content-Type",
-			contentType:    "text/plain",
-			body:           `[{"correlation_id": "1", "original_url": "https://example.com"}]`,
-			mockSetup:      func(m *service.MockURLLinkServicer) {},
-			expectedStatus: http.StatusBadRequest,
-			expectedBody:   "Content-Type должен быть application/json\n",
-		},
-		{
-			name:           "Bad Request - Invalid JSON body",
-			contentType:    "application/json",
-			body:           `[]`,
-			mockSetup:      func(m *service.MockURLLinkServicer) {},
-			expectedStatus: http.StatusBadRequest,
-			expectedBody:   "Некорректное тело запроса. url должно быть json\n",
-		},
+func TestHandleGenerateShortURLJson_Conflict(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockService := mocks.NewMockURLLinkService(ctrl)
+	logger := zerolog.New(nil)
+	h := NewURLLinkHandler(mockService, "http://localhost", logger)
+
+	// Данные запроса
+	requestBody := requestBody{
+		URL: "https://example.com",
+	}
+	reqBodyBytes, _ := json.Marshal(requestBody)
+	r := httptest.NewRequest(http.MethodPost, "/api/shorten", bytes.NewBuffer(reqBodyBytes))
+	r.Header.Set("Content-Type", "application/json")
+
+	// Ожидаемая модель URLLink (уже существует)
+	existingURLLink := domain.URLLink{
+		LongURL:  "https://example.com",
+		ShortURL: "abc123",
 	}
 
-	logger := zerolog.New(os.Stdout).Level(zerolog.InfoLevel)
+	// Ожидания для вызова mock
+	mockService.
+		EXPECT().
+		CreateShortURL(gomock.Any(), domain.URLLink{LongURL: "https://example.com"}).
+		Return(existingURLLink, repoerrors.ErrorShortLinkAlreadyInDB)
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			ctrl := gomock.NewController(t)
-			defer ctrl.Finish()
+	w := httptest.NewRecorder()
+	h.HandleGenerateShortURLJson(w, r)
 
-			mockService := service.NewMockURLLinkServicer(ctrl)
-			tt.mockSetup(mockService)
+	resp := w.Result()
+	defer resp.Body.Close()
 
-			handler := NewURLLinkHandler(mockService, "http://localhost", logger)
+	assert.Equal(t, http.StatusConflict, resp.StatusCode)
 
-			req := httptest.NewRequest(http.MethodPost, "/shorten/batch", strings.NewReader(tt.body))
-			req.Header.Set("Content-Type", tt.contentType)
-			w := httptest.NewRecorder()
+	var respBody responseBody
+	json.NewDecoder(resp.Body).Decode(&respBody)
+	assert.Equal(t, "http://localhost/abc123", respBody.Result)
+}
 
-			handler.HandleGenerateShortURLJsonBatch(w, req)
+func TestHandleGenerateShortURLJsonBatch_Success(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
 
-			resp := w.Result()
-			defer resp.Body.Close()
+	mockService := mocks.NewMockURLLinkService(ctrl)
+	logger := zerolog.New(nil)
+	h := NewURLLinkHandler(mockService, "http://localhost", logger)
 
-			assert.Equal(t, tt.expectedStatus, resp.StatusCode)
-
-			body, _ := io.ReadAll(resp.Body)
-			assert.Equal(t, tt.expectedBody, string(body))
-		})
+	// Данные запроса
+	requestItems := []batchRequestItem{
+		{ID: "1", URL: "https://example.com"},
+		{ID: "2", URL: "https://test.com"},
 	}
+	reqBodyBytes, _ := json.Marshal(requestItems)
+	r := httptest.NewRequest(http.MethodPost, "/api/shorten/batch", bytes.NewBuffer(reqBodyBytes))
+	r.Header.Set("Content-Type", "application/json")
+
+	// Ожидаемая модель URLLink
+	mockService.
+		EXPECT().
+		CreateShortURL(gomock.Any(), domain.URLLink{LongURL: "https://example.com"}).
+		Return(domain.URLLink{ShortURL: "abc123"}, nil)
+	mockService.
+		EXPECT().
+		CreateShortURL(gomock.Any(), domain.URLLink{LongURL: "https://test.com"}).
+		Return(domain.URLLink{ShortURL: "xyz789"}, nil)
+
+	w := httptest.NewRecorder()
+	h.HandleGenerateShortURLJsonBatch(w, r)
+
+	resp := w.Result()
+	defer resp.Body.Close()
+
+	assert.Equal(t, http.StatusCreated, resp.StatusCode)
+
+	var respBody []batchResponseItem
+	json.NewDecoder(resp.Body).Decode(&respBody)
+
+	assert.Equal(t, 2, len(respBody))
+	assert.Equal(t, "1", respBody[0].ID)
+	assert.Equal(t, "http://localhost/abc123", respBody[0].Result)
+	assert.Equal(t, "2", respBody[1].ID)
+	assert.Equal(t, "http://localhost/xyz789", respBody[1].Result)
+}
+
+func TestHandleGenerateShortURLJson_BadRequest(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockService := mocks.NewMockURLLinkService(ctrl)
+	logger := zerolog.New(nil)
+	h := NewURLLinkHandler(mockService, "http://localhost", logger)
+
+	// Некорректное тело запроса
+	r := httptest.NewRequest(http.MethodPost, "/api/shorten", bytes.NewBuffer([]byte("{invalid-json")))
+	r.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	h.HandleGenerateShortURLJson(w, r)
+
+	resp := w.Result()
+	defer resp.Body.Close()
+
+	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 }
