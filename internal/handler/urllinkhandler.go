@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/physicist2018/url-shortener-go/internal/domain"
@@ -15,23 +16,31 @@ import (
 
 const (
 	RequestResponseTimeout = 5 * time.Second
+	PingTimeout            = 3 * time.Second
+	MaxQueueCapacity       = 100
 )
 
 type URLLinkHandler struct {
-	service domain.URLLinkService
-	baseURL string
-	log     zerolog.Logger
+	service     domain.URLLinkService
+	baseURL     string
+	log         zerolog.Logger
+	deleteQueue chan DeleteRecordTask
 }
 
-func NewURLLinkHandler(service domain.URLLinkService, baseURL string, logger zerolog.Logger) *URLLinkHandler {
-	return &URLLinkHandler{
-		service: service,
-		baseURL: baseURL,
-		log:     logger,
+func NewURLLinkHandler(service domain.URLLinkService, baseURL string, logger zerolog.Logger, ctx context.Context, wg *sync.WaitGroup) *URLLinkHandler {
+	h := &URLLinkHandler{
+		service:     service,
+		baseURL:     baseURL,
+		log:         logger,
+		deleteQueue: make(chan DeleteRecordTask, MaxQueueCapacity),
 	}
+
+	go h.processMarkDeleteRecords(ctx, wg)
+	return h
 }
 
 func (h *URLLinkHandler) ShortenURL(w http.ResponseWriter, r *http.Request) {
+	userID := r.Context().Value(domain.UserIDKey).(string)
 	ctx, cancel := context.WithTimeout(r.Context(), RequestResponseTimeout)
 	defer cancel()
 
@@ -43,7 +52,7 @@ func (h *URLLinkHandler) ShortenURL(w http.ResponseWriter, r *http.Request) {
 	}
 
 	longURL := string(longURLBytes)
-	urllink, err := h.service.CreateShortURL(ctx, longURL)
+	urllink, err := h.service.CreateShortURL(ctx, domain.URLLink{LongURL: longURL, UserID: userID})
 	if err != nil {
 		h.log.Info().Msg(err.Error())
 		if errors.Is(err, repoerrors.ErrorShortLinkAlreadyInDB) {
@@ -70,22 +79,27 @@ func (h *URLLinkHandler) Redirect(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
 	defer cancel()
 
-	//shortURL := chi.URLParam(r, "shortURL")
 	path := r.URL.Path
 	shortURL := strings.TrimPrefix(path, "/")
-	originalURL, err := h.service.GetOriginalURL(ctx, shortURL)
+	urllink, err := h.service.GetOriginalURL(ctx, domain.URLLink{ShortURL: shortURL})
 
 	if err != nil {
+
 		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 		return
 	}
 
-	w.Header().Set("Location", originalURL)
+	if urllink.DeletedFlag {
+		http.Error(w, http.StatusText(http.StatusGone), http.StatusGone)
+		return
+	}
+
+	w.Header().Set("Location", urllink.LongURL)
 	w.WriteHeader(http.StatusTemporaryRedirect)
 }
 
 func (h *URLLinkHandler) PingHandler(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), PingTimeout)
 	defer cancel()
 
 	err := h.service.Ping(ctx)
@@ -93,4 +107,10 @@ func (h *URLLinkHandler) PingHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 	}
 	w.WriteHeader(http.StatusOK)
+}
+
+func (h *URLLinkHandler) Close() {
+	if h.deleteQueue != nil {
+		close(h.deleteQueue)
+	}
 }

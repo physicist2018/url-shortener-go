@@ -3,6 +3,8 @@ package sqlitedbrepo
 import (
 	"context"
 	"database/sql"
+	_ "embed"
+	"encoding/json"
 	"errors"
 	"time"
 
@@ -12,6 +14,9 @@ import (
 	"github.com/physicist2018/url-shortener-go/internal/domain"
 	"github.com/physicist2018/url-shortener-go/internal/repository/repoerrors"
 )
+
+//go:embed linktable.sql
+var queryCreateTable string
 
 type SQLiteDBLinkRepository struct {
 	db *sqlx.DB
@@ -37,44 +42,62 @@ func NewDBLinkRepository(connStr string) (*SQLiteDBLinkRepository, error) {
 	return dblink, nil
 }
 
-func (d *SQLiteDBLinkRepository) Store(ctx context.Context, urllink *domain.URLLink) error {
-	queryInsert := `INSERT INTO links(short_url, original_url) VALUES($1, $2);`
-	_, err := d.db.ExecContext(ctx, queryInsert, urllink.ShortURL, urllink.LongURL)
+func (d *SQLiteDBLinkRepository) Store(ctx context.Context, urllink domain.URLLink) (domain.URLLink, error) {
+	// Логика работы такая: пытаемся вставить короткую ссылку в БД, при этом если сокращаемый урл
+	// уже там, мы возвращаем эту ссылку
+	queryInsert := `INSERT INTO links(user_id, short_url, original_url) VALUES($1, $2, $3);`
+	_, err := d.db.ExecContext(ctx, queryInsert, urllink.UserID, urllink.ShortURL, urllink.LongURL)
 
 	if err == nil {
-		return nil
+		return urllink, nil
 	}
 
 	var sqliteError sqlite3.Error
 	if !errors.As(err, &sqliteError) {
-		return errors.Join(repoerrors.ErrorInsertShortLink, err)
+		return domain.URLLink{}, errors.Join(repoerrors.ErrorInsertShortLink, err)
 	}
 
 	// Обработка ошибки нарушения уникальности
 	if sqliteError.ExtendedCode == sqlite3.ErrConstraintUnique {
-		querySelect := `SELECT short_url, original_url FROM links WHERE original_url = $1 LIMIT 1;`
-		if err := d.db.GetContext(ctx, urllink, querySelect, urllink.LongURL); err != nil {
-			return errors.Join(repoerrors.ErrorSelectExistedShortLink, err)
+		querySelect := `SELECT user_id, short_url, original_url FROM links WHERE original_url = $1 LIMIT 1;`
+		if err := d.db.GetContext(ctx, &urllink, querySelect, urllink.LongURL); err != nil {
+
+			return domain.URLLink{}, errors.Join(repoerrors.ErrorSelectExistedShortLink, err)
 		}
-		return errors.Join(repoerrors.ErrorShortLinkAlreadyInDB, err)
+		return urllink, errors.Join(repoerrors.ErrorShortLinkAlreadyInDB, err)
 	}
 
 	// Обработка других ошибок SQLite
-	return errors.Join(repoerrors.ErrorSQLInternal, err)
+	return domain.URLLink{}, errors.Join(repoerrors.ErrorSQLInternal, err)
 }
 
-func (d *SQLiteDBLinkRepository) Find(ctx context.Context, shortURL string) (*domain.URLLink, error) {
-	query := `SELECT short_url, original_url FROM links WHERE short_url=$1 LIMIT 1;`
+// change function specification
+func (d *SQLiteDBLinkRepository) Find(ctx context.Context, shortURL string) (domain.URLLink, error) {
+	query := `SELECT user_id, short_url, original_url FROM links WHERE short_url=$1 LIMIT 1;`
 	var urllink domain.URLLink
 	if err := d.db.GetContext(ctx, &urllink, query, shortURL); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			// не найден короткий URL
-			return nil, errors.Join(repoerrors.ErrorShortLinkNotFound, err)
+			return domain.URLLink{}, errors.Join(repoerrors.ErrorShortLinkNotFound, err)
 		}
 		// при извлечении произошла ошибка
-		return nil, errors.Join(repoerrors.ErrorSelectExistedShortLink, err)
+		return domain.URLLink{}, errors.Join(repoerrors.ErrorSelectExistedShortLink, err)
 	}
-	return &urllink, nil
+	return urllink, nil
+}
+
+func (d *SQLiteDBLinkRepository) FindAll(ctx context.Context, userID string) ([]domain.URLLink, error) {
+	query := `SELECT user_id, short_url, original_url FROM links WHERE user_id=$1;`
+	var urllinks []domain.URLLink
+	if err := d.db.SelectContext(ctx, &urllinks, query, userID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			// не найден короткий URL
+			return nil, errors.Join(repoerrors.ErrorShortLinkNotFound, err)
+		}
+		return nil, errors.Join(repoerrors.ErrorSelectShortLinks, err)
+	}
+	return urllinks, nil
+
 }
 
 func (d *SQLiteDBLinkRepository) Ping(ctx context.Context) error {
@@ -85,12 +108,7 @@ func (d *SQLiteDBLinkRepository) Ping(ctx context.Context) error {
 }
 
 func (d *SQLiteDBLinkRepository) create(ctx context.Context) error {
-	query := `CREATE TABLE IF NOT EXISTS links(
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		short_url TEXT NOT NULL,
-		original_url TEXT NOT NULL UNIQUE
-	);`
-	if _, err := d.db.ExecContext(ctx, query); err != nil {
+	if _, err := d.db.ExecContext(ctx, queryCreateTable); err != nil {
 		return errors.Join(repoerrors.ErrorTableCreate, err)
 	}
 	return nil
@@ -101,4 +119,21 @@ func (d *SQLiteDBLinkRepository) Close() error {
 		return d.db.Close()
 	}
 	return nil
+}
+
+func (d *SQLiteDBLinkRepository) MarkURLsAsDeleted(ctx context.Context, userID string, shortURLs []string) error {
+	jsonArray, err := json.Marshal(shortURLs)
+	if err != nil {
+		return err
+	}
+	queryDelete := `
+	UPDATE links
+	SET is_deleted = true
+	WHERE user_id = ? AND short_url IN (
+		SELECT value FROM json_each(?)
+	)
+`
+
+	_, err = d.db.ExecContext(ctx, queryDelete, userID, string(jsonArray))
+	return err
 }

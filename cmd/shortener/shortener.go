@@ -1,7 +1,9 @@
 package main
 
 import (
+	"context"
 	"os"
+	"sync"
 
 	"github.com/physicist2018/url-shortener-go/internal/config"
 	"github.com/physicist2018/url-shortener-go/internal/domain"
@@ -47,11 +49,19 @@ func main() {
 		}
 	}()
 
+	var wg sync.WaitGroup
+	wg.Add(1)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	linkService := service.NewURLLinkService(linkRepo, randomStringGenerator, logger)
-	linkHandler := handler.NewURLLinkHandler(linkService, cfg.BaseURLServer, logger)
+	linkHandler := handler.NewURLLinkHandler(linkService, cfg.BaseURLServer, logger, ctx, &wg)
 
 	r := router.NewRouter(linkHandler, logger)
 
 	srv := server.NewServer(cfg.ServerAddr, r, logger)
 	srv.Start()
+
+	linkHandler.Close() // Закрываем канал обмена с горутиной, что приводит к очистке очереди и завершению
+	wg.Wait()
 }
