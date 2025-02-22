@@ -8,9 +8,15 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/physicist2018/url-shortener-go/internal/domain"
 	"github.com/physicist2018/url-shortener-go/internal/repository/repoerrors"
+)
+
+const (
+	timeToDeleteTimeout = 5 * time.Second
 )
 
 type (
@@ -35,6 +41,12 @@ type (
 	batchResponseListPerUser struct {
 		ShortURL string `json:"short_url"`
 		LongURL  string `json:"original_url"`
+	}
+
+	// пакет передачи данных горутине удаления записей из таблицы
+	DeleteRecordTask struct {
+		UserID    string
+		ShortURLs []string
 	}
 )
 
@@ -126,6 +138,28 @@ func (h *URLLinkHandler) HandleGetAllShortedURLsForUserJSON(w http.ResponseWrite
 
 }
 
+func (h *URLLinkHandler) HandleDeleteShortedURLsForUserJSON(w http.ResponseWriter, r *http.Request) {
+	userID := r.Context().Value(domain.UserIDKey).(string)
+	h.log.Info().Str("userID", userID).Msg("User requested to delete short URLs")
+	var shortLinks []string
+	if err := h.decodeArrayOfShortLinks(r, &shortLinks); err != nil || len(shortLinks) == 0 {
+		http.Error(w, "Некорректное тело запроса. Это должен быть список строк json", http.StatusBadRequest)
+		return
+	}
+
+	rec := DeleteRecordTask{
+		UserID:    userID,
+		ShortURLs: shortLinks,
+	}
+
+	select {
+	case h.deleteQueue <- rec:
+		http.Error(w, http.StatusText(http.StatusAccepted), http.StatusAccepted)
+	default:
+		http.Error(w, "Delete queue is full", http.StatusServiceUnavailable)
+	}
+}
+
 // Вспомогательные методы
 
 func (h *URLLinkHandler) isContentTypeJSON(r *http.Request) bool {
@@ -156,5 +190,37 @@ func (h *URLLinkHandler) sendBatchJSONResponseForUser(w http.ResponseWriter, sta
 	w.WriteHeader(statusCode)
 	if len(respBody) > 0 {
 		json.NewEncoder(w).Encode(respBody)
+	}
+}
+
+func (h *URLLinkHandler) decodeArrayOfShortLinks(r *http.Request, v interface{}) error {
+	return json.NewDecoder(r.Body).Decode(v)
+}
+
+func (h *URLLinkHandler) processMarkDeleteRecords(ctx context.Context, wg *sync.WaitGroup) {
+	defer wg.Done()
+	h.log.Info().Msg("Sart deleting goroutine")
+	for {
+		select {
+		case rec, ok := <-h.deleteQueue:
+			if !ok {
+				// Канал закрыт, завершаем горутину
+				h.log.Info().Msg("Delete queue channel closed, stopping goroutine")
+				return
+			}
+
+			ctx, cancel := context.WithTimeout(context.Background(), timeToDeleteTimeout)
+			defer cancel()
+
+			err := h.service.MarkURLsAsDeleted(ctx, rec.UserID, rec.ShortURLs)
+			if err != nil {
+				h.log.Info().Err(err).Msg("Failed to mark URLs as deleted:")
+			} else {
+				h.log.Info().Str("userID", rec.UserID).Msg("Successfully marked URLs as deleted for user")
+			}
+		case <-ctx.Done():
+			h.log.Info().Msg("Received shutdown signal, stopping goroutine")
+			return
+		}
 	}
 }

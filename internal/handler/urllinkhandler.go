@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/physicist2018/url-shortener-go/internal/domain"
@@ -15,20 +16,26 @@ import (
 
 const (
 	RequestResponseTimeout = 5 * time.Second
+	MaxQueueCapacity       = 10
 )
 
 type URLLinkHandler struct {
-	service domain.URLLinkService
-	baseURL string
-	log     zerolog.Logger
+	service     domain.URLLinkService
+	baseURL     string
+	log         zerolog.Logger
+	deleteQueue chan DeleteRecordTask
 }
 
-func NewURLLinkHandler(service domain.URLLinkService, baseURL string, logger zerolog.Logger) *URLLinkHandler {
-	return &URLLinkHandler{
-		service: service,
-		baseURL: baseURL,
-		log:     logger,
+func NewURLLinkHandler(service domain.URLLinkService, baseURL string, logger zerolog.Logger, ctx context.Context, wg *sync.WaitGroup) *URLLinkHandler {
+	h := &URLLinkHandler{
+		service:     service,
+		baseURL:     baseURL,
+		log:         logger,
+		deleteQueue: make(chan DeleteRecordTask, MaxQueueCapacity),
 	}
+
+	go h.processMarkDeleteRecords(ctx, wg)
+	return h
 }
 
 func (h *URLLinkHandler) ShortenURL(w http.ResponseWriter, r *http.Request) {
@@ -93,4 +100,11 @@ func (h *URLLinkHandler) PingHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 	}
 	w.WriteHeader(http.StatusOK)
+}
+
+func (h *URLLinkHandler) Close() {
+	if h.deleteQueue != nil {
+		close(h.deleteQueue)
+	}
+	return
 }

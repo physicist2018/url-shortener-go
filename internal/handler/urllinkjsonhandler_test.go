@@ -2,9 +2,11 @@ package handler
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"sync"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -21,7 +23,11 @@ func TestHandleGenerateShortURLJson_Success(t *testing.T) {
 
 	mockService := mocks.NewMockURLLinkService(ctrl)
 	logger := zerolog.New(nil)
-	h := NewURLLinkHandler(mockService, "http://localhost", logger)
+	var wg sync.WaitGroup
+	wg.Add(1)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	h := NewURLLinkHandler(mockService, "http://localhost", logger, ctx, &wg)
 
 	// Данные запроса
 	requestBody := requestBody{
@@ -54,6 +60,8 @@ func TestHandleGenerateShortURLJson_Success(t *testing.T) {
 	var respBody responseBody
 	json.NewDecoder(resp.Body).Decode(&respBody)
 	assert.Equal(t, "http://localhost/abc123", respBody.Result)
+	h.Close()
+	wg.Wait()
 }
 
 func TestHandleGenerateShortURLJson_Conflict(t *testing.T) {
@@ -62,7 +70,11 @@ func TestHandleGenerateShortURLJson_Conflict(t *testing.T) {
 
 	mockService := mocks.NewMockURLLinkService(ctrl)
 	logger := zerolog.New(nil)
-	h := NewURLLinkHandler(mockService, "http://localhost", logger)
+	var wg sync.WaitGroup
+	wg.Add(1)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	h := NewURLLinkHandler(mockService, "http://localhost", logger, ctx, &wg)
 
 	// Данные запроса
 	requestBody := requestBody{
@@ -95,6 +107,9 @@ func TestHandleGenerateShortURLJson_Conflict(t *testing.T) {
 	var respBody responseBody
 	json.NewDecoder(resp.Body).Decode(&respBody)
 	assert.Equal(t, "http://localhost/abc123", respBody.Result)
+
+	h.Close()
+	wg.Wait()
 }
 
 func TestHandleGenerateShortURLJsonBatch_Success(t *testing.T) {
@@ -103,7 +118,12 @@ func TestHandleGenerateShortURLJsonBatch_Success(t *testing.T) {
 
 	mockService := mocks.NewMockURLLinkService(ctrl)
 	logger := zerolog.New(nil)
-	h := NewURLLinkHandler(mockService, "http://localhost", logger)
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	h := NewURLLinkHandler(mockService, "http://localhost", logger, ctx, &wg)
 
 	// Данные запроса
 	requestItems := []batchRequestItem{
@@ -140,6 +160,9 @@ func TestHandleGenerateShortURLJsonBatch_Success(t *testing.T) {
 	assert.Equal(t, "http://localhost/abc123", respBody[0].Result)
 	assert.Equal(t, "2", respBody[1].ID)
 	assert.Equal(t, "http://localhost/xyz789", respBody[1].Result)
+
+	h.Close()
+	wg.Wait()
 }
 
 func TestHandleGenerateShortURLJson_BadRequest(t *testing.T) {
@@ -148,7 +171,11 @@ func TestHandleGenerateShortURLJson_BadRequest(t *testing.T) {
 
 	mockService := mocks.NewMockURLLinkService(ctrl)
 	logger := zerolog.New(nil)
-	h := NewURLLinkHandler(mockService, "http://localhost", logger)
+	var wg sync.WaitGroup
+	wg.Add(1)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	h := NewURLLinkHandler(mockService, "http://localhost", logger, ctx, &wg)
 
 	// Некорректное тело запроса
 	r := httptest.NewRequest(http.MethodPost, "/api/shorten", bytes.NewBuffer([]byte("{invalid-json")))
@@ -161,4 +188,7 @@ func TestHandleGenerateShortURLJson_BadRequest(t *testing.T) {
 	defer resp.Body.Close()
 
 	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+
+	h.Close()
+	wg.Wait()
 }

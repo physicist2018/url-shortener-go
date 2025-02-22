@@ -127,3 +127,14 @@ func (d *PostgresDBLinkRepository) Close() error {
 	}
 	return nil
 }
+
+func (d *PostgresDBLinkRepository) MarkURLsAsDeleted(ctx context.Context, userID string, shortURLs []string) error {
+	queryDelete := `
+		UPDATE links
+		SET is_deleted = true
+		WHERE user_id = $1 AND short_url = ANY($2)
+	`
+
+	_, err := d.db.ExecContext(ctx, queryDelete, userID, pq.Array(shortURLs))
+	return err
+}

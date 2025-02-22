@@ -76,6 +76,20 @@ func (m *InMemoryLinkRepository) FindAll(ctx context.Context, userID string) ([]
 	return nil, nil
 }
 
+func (m *InMemoryLinkRepository) MarkURLsAsDeleted(ctx context.Context, userID string, shortURLs []string) error {
+	// пробегаемся по всем ссылкам в репе и метим на удаление те, где совпадает пользователь и короткая ссылка
+	for _, shortUrl := range shortURLs {
+		if urllink, ok := m.links[shortUrl]; ok {
+			if urllink.UserID == userID {
+				urllink.DeletedFlag = true
+				m.links[shortUrl] = urllink
+			}
+		}
+	}
+
+	return nil
+}
+
 func (m *InMemoryLinkRepository) Ping(ctx context.Context) error {
 	return nil
 }

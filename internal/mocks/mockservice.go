@@ -80,6 +80,20 @@ func (mr *MockURLLinkServiceMockRecorder) GetOriginalURL(ctx, link interface{}) 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOriginalURL", reflect.TypeOf((*MockURLLinkService)(nil).GetOriginalURL), ctx, link)
 }
 
+// MarkURLsAsDeleted mocks base method.
+func (m *MockURLLinkService) MarkURLsAsDeleted(ctx context.Context, userID string, shortURLs []string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "MarkURLsAsDeleted", ctx, userID, shortURLs)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// MarkURLsAsDeleted indicates an expected call of MarkURLsAsDeleted.
+func (mr *MockURLLinkServiceMockRecorder) MarkURLsAsDeleted(ctx, userID, shortURLs interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MarkURLsAsDeleted", reflect.TypeOf((*MockURLLinkService)(nil).MarkURLsAsDeleted), ctx, userID, shortURLs)
+}
+
 // Ping mocks base method.
 func (m *MockURLLinkService) Ping(ctx context.Context) error {
 	m.ctrl.T.Helper()

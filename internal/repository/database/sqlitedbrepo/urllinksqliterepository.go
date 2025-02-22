@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	_ "embed"
+	"encoding/json"
 	"errors"
 	"time"
 
@@ -118,4 +119,21 @@ func (d *SQLiteDBLinkRepository) Close() error {
 		return d.db.Close()
 	}
 	return nil
+}
+
+func (d *SQLiteDBLinkRepository) MarkURLsAsDeleted(ctx context.Context, userID string, shortURLs []string) error {
+	jsonArray, err := json.Marshal(shortURLs)
+	if err != nil {
+		return err
+	}
+	queryDelete := `
+	UPDATE links
+	SET is_deleted = true
+	WHERE user_id = ? AND short_url IN (
+		SELECT value FROM json_each(?)
+	)
+`
+
+	_, err = d.db.ExecContext(ctx, queryDelete, userID, string(jsonArray))
+	return err
 }

@@ -54,3 +54,7 @@ func (u *URLLinkService) FindAll(ctx context.Context, userID string) ([]domain.U
 func (u *URLLinkService) Ping(ctx context.Context) error {
 	return u.repo.Ping(ctx)
 }
+
+func (u *URLLinkService) MarkURLsAsDeleted(ctx context.Context, userID string, shortURLs []string) error {
+	return u.repo.MarkURLsAsDeleted(ctx, userID, shortURLs)
+}
