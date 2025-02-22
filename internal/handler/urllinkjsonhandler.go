@@ -156,13 +156,23 @@ func (h *URLLinkHandler) HandleDeleteShortedURLsForUserJSON(w http.ResponseWrite
 		ShortURLs: shortLinks,
 	}
 
+	// Отправка задачи в канал с таймаутом
+	ctx, cancel := context.WithTimeout(r.Context(), time.Second*5) // Таймаут 5 секунд
+	defer cancel()
+
 	select {
 	case h.deleteQueue <- rec:
-		h.log.Info().Str("shortURLs", strings.Join(shortLinks, ", ")).Send()
-		http.Error(w, http.StatusText(http.StatusAccepted), http.StatusAccepted)
-		//default:
-		//	http.Error(w, "Delete queue is full", http.StatusServiceUnavailable)
+		response := map[string]string{
+			"status":  "accepted",
+			"message": "Delete request accepted",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusAccepted)
+		json.NewEncoder(w).Encode(response)
+	case <-ctx.Done():
+		http.Error(w, "Delete queue is full, try again later", http.StatusServiceUnavailable)
 	}
+
 }
 
 // Вспомогательные методы
