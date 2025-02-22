@@ -106,5 +106,4 @@ func (h *URLLinkHandler) Close() {
 	if h.deleteQueue != nil {
 		close(h.deleteQueue)
 	}
-	return
 }
