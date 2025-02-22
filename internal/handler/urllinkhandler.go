@@ -16,6 +16,7 @@ import (
 
 const (
 	RequestResponseTimeout = 5 * time.Second
+	PingTimeout            = 10 * time.Second
 	MaxQueueCapacity       = 10
 )
 
@@ -98,7 +99,7 @@ func (h *URLLinkHandler) Redirect(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *URLLinkHandler) PingHandler(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), PingTimeout)
 	defer cancel()
 
 	err := h.service.Ping(ctx)
