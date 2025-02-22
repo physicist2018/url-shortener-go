@@ -139,7 +139,11 @@ func (h *URLLinkHandler) HandleGetAllShortedURLsForUserJSON(w http.ResponseWrite
 }
 
 func (h *URLLinkHandler) HandleDeleteShortedURLsForUserJSON(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value(domain.UserIDKey).(string)
+	userID, ok := r.Context().Value(domain.UserIDKey).(string)
+	if !ok || userID == "" {
+		http.Error(w, "UserID is missing or invalid", http.StatusUnauthorized)
+		return
+	}
 	h.log.Info().Str("userID", userID).Msg("User requested to delete short URLs")
 	var shortLinks []string
 	if err := h.decodeArrayOfShortLinks(r, &shortLinks); err != nil || len(shortLinks) == 0 {
