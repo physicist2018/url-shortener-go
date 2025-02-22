@@ -155,7 +155,7 @@ func (h *URLLinkHandler) HandleDeleteShortedURLsForUserJSON(w http.ResponseWrite
 		UserID:    userID,
 		ShortURLs: shortLinks,
 	}
-
+	h.log.Info().Int("len(deleteQueue) = ", len(h.deleteQueue)).Msg("длина очереди на удаление")
 	// Отправка задачи в канал с таймаутом
 	ctx, cancel := context.WithTimeout(r.Context(), time.Second*5) // Таймаут 5 секунд
 	defer cancel()
