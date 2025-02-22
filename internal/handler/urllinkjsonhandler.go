@@ -158,6 +158,7 @@ func (h *URLLinkHandler) HandleDeleteShortedURLsForUserJSON(w http.ResponseWrite
 
 	select {
 	case h.deleteQueue <- rec:
+		h.log.Info().Str("shortURLs", strings.Join(shortLinks, ", ")).Send()
 		http.Error(w, http.StatusText(http.StatusAccepted), http.StatusAccepted)
 		//default:
 		//	http.Error(w, "Delete queue is full", http.StatusServiceUnavailable)
