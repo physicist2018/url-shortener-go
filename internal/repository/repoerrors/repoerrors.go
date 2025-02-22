@@ -15,4 +15,5 @@ var (
 	ErrorConnectingDB                 = fmt.Errorf("ошибка подключения к БД: ")
 	ErrorSelectShortLinks             = fmt.Errorf("ошибка выборки коротких ссылок для пользователя ")
 	ErrorShortURLCreatedByAnotherUser = fmt.Errorf("короткая ссылка для ресурса создана другим пользователем: ")
+	ErrorShortLinkHasBeenGone         = fmt.Errorf("короткая ссылка была удалена: ")
 )
