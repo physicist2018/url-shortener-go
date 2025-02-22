@@ -110,12 +110,7 @@ func (d *PostgresDBLinkRepository) Ping(ctx context.Context) error {
 }
 
 func (d *PostgresDBLinkRepository) create(ctx context.Context) error {
-	query := `CREATE TABLE IF NOT EXISTS links (
-		id SERIAL PRIMARY KEY,
-        user_id TEXT NOT NULL,
-        short_url TEXT NOT NULL,
-        original_url TEXT NOT NULL UNIQUE);`
-	if _, err := d.db.ExecContext(ctx, query); err != nil {
+	if _, err := d.db.ExecContext(ctx, queryCreateTable); err != nil {
 		return errors.Join(repoerrors.ErrorTableCreate, err)
 	}
 	return nil
