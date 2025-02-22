@@ -16,7 +16,7 @@ import (
 
 const (
 	RequestResponseTimeout = 5 * time.Second
-	PingTimeout            = 10 * time.Second
+	PingTimeout            = 3 * time.Second
 	MaxQueueCapacity       = 10
 )
 
