@@ -17,8 +17,8 @@ type Config struct {
 
 func NewConfig() *Config {
 	cfg := &Config{}
-	flag.StringVar(&cfg.ServerAddr, "a", "localhost:8080", "адрес интерфейса, на котором запускать сервер")
-	flag.StringVar(&cfg.BaseURLServer, "b", "http://localhost:8080", "префикс короткого URL")
+	flag.StringVar(&cfg.ServerAddr, "a", "localhost:1234", "адрес интерфейса, на котором запускать сервер")
+	flag.StringVar(&cfg.BaseURLServer, "b", "http://localhost:1234", "префикс короткого URL")
 	flag.StringVar(&cfg.FileStoragePath, "f", "dbase.json", "имя файла персистентного хранилища коротких URL")
 	flag.StringVar(&cfg.DatabaseDSN, "d", "", "параметры подключения к базе данных")
 	flag.IntVar(&cfg.MaxShortURLLength, "max-short-url-len", 5, "максимально допустимая длина короткой ссылки")
