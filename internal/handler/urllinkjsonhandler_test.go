@@ -24,7 +24,7 @@ func TestHandleGenerateShortURLJson_Success(t *testing.T) {
 	mockService := mocks.NewMockURLLinkService(ctrl)
 	logger := zerolog.New(nil)
 	var wg sync.WaitGroup
-	wg.Add(1)
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	h := NewURLLinkHandler(mockService, "http://localhost", logger, ctx, &wg)
@@ -71,7 +71,7 @@ func TestHandleGenerateShortURLJson_Conflict(t *testing.T) {
 	mockService := mocks.NewMockURLLinkService(ctrl)
 	logger := zerolog.New(nil)
 	var wg sync.WaitGroup
-	wg.Add(1)
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	h := NewURLLinkHandler(mockService, "http://localhost", logger, ctx, &wg)
@@ -120,7 +120,7 @@ func TestHandleGenerateShortURLJsonBatch_Success(t *testing.T) {
 	logger := zerolog.New(nil)
 
 	var wg sync.WaitGroup
-	wg.Add(1)
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	h := NewURLLinkHandler(mockService, "http://localhost", logger, ctx, &wg)
@@ -172,7 +172,7 @@ func TestHandleGenerateShortURLJson_BadRequest(t *testing.T) {
 	mockService := mocks.NewMockURLLinkService(ctrl)
 	logger := zerolog.New(nil)
 	var wg sync.WaitGroup
-	wg.Add(1)
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	h := NewURLLinkHandler(mockService, "http://localhost", logger, ctx, &wg)
