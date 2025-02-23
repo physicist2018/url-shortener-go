@@ -126,6 +126,6 @@ func (d *PostgresDBLinkRepository) Close() error {
 func (d *PostgresDBLinkRepository) MarkDeletedBatch(ctx context.Context, links domain.DeleteRecordTask) error {
 	queryDelete := `UPDATE links SET is_deleted = true 	WHERE user_id = $1 AND short_url = ANY($2);`
 
-	_, err := d.db.Exec(queryDelete, links.UserID, pq.Array(links.ShortURLs))
+	_, err := d.db.ExecContext(ctx, queryDelete, links.UserID, pq.Array(links.ShortURLs))
 	return err
 }

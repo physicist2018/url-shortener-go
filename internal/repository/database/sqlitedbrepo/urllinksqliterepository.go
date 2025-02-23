@@ -139,6 +139,6 @@ func (d *SQLiteDBLinkRepository) MarkDeletedBatch(ctx context.Context, links dom
     `
 
 	// Выполняем запрос
-	_, err = d.db.Exec(queryDelete, links.UserID, string(jsonArray))
+	_, err = d.db.ExecContext(ctx, queryDelete, links.UserID, string(jsonArray))
 	return err
 }

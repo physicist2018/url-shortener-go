@@ -7,6 +7,8 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
@@ -43,7 +45,24 @@ type (
 	}
 )
 
+func GetGoid() int64 {
+	var (
+		buf [64]byte
+		n   = runtime.Stack(buf[:], false)
+		stk = strings.TrimPrefix(string(buf[:n]), "goroutine")
+	)
+
+	idField := strings.Fields(stk)[0]
+	id, err := strconv.Atoi(idField)
+	if err != nil {
+		panic(fmt.Errorf("can not get goroutine id: %v", err))
+	}
+
+	return int64(id)
+}
+
 func (h *URLLinkHandler) HandleGenerateShortURLJson(w http.ResponseWriter, r *http.Request) {
+
 	if !h.isContentTypeJSON(r) {
 		http.Error(w, "Content-Type должен быть application/json", http.StatusBadRequest)
 		return
@@ -134,7 +153,7 @@ func (h *URLLinkHandler) HandleGetAllShortedURLsForUserJSON(w http.ResponseWrite
 func (h *URLLinkHandler) HandleDeleteShortedURLsForUserJSON(w http.ResponseWriter, r *http.Request) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
-
+	h.log.Info().Int("GoID", int(GetGoid())).Msg("HandleGenerateShortURLJson")
 	userID, ok := r.Context().Value(domain.UserIDKey).(string)
 	if !ok || userID == "" {
 		http.Error(w, "UserID is missing or invalid", http.StatusUnauthorized)
@@ -160,13 +179,13 @@ func (h *URLLinkHandler) HandleDeleteShortedURLsForUserJSON(w http.ResponseWrite
 
 	select {
 	case h.deleteQueue <- urltodelete:
-		response := map[string]string{
-			"status":  "accepted",
-			"message": "Delete request accepted",
-		}
+		// response := map[string]string{
+		// 	"status":  "accepted",
+		// 	"message": "Delete request accepted",
+		// }
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusAccepted)
-		json.NewEncoder(w).Encode(response)
+		//json.NewEncoder(w).Encode(response)
 	case <-ctx.Done():
 		http.Error(w, "Delete queue is full, try again later", http.StatusServiceUnavailable)
 	}

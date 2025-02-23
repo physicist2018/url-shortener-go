@@ -69,6 +69,7 @@ func NewURLLinkHandler(service domain.URLLinkService, baseURL string, logger zer
 
 		}
 	}()
+	h.log.Info().Msg("Инициализация хэндлеров прошла успешно")
 	return h
 }
 
