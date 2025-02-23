@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	_ "embed"
 	"errors"
+	"fmt"
+	"log"
 	"time"
 
 	_ "github.com/google/uuid"
@@ -123,13 +125,30 @@ func (d *PostgresDBLinkRepository) Close() error {
 	return nil
 }
 
-func (d *PostgresDBLinkRepository) MarkURLsAsDeleted(ctx context.Context, userID string, shortURLs []string) error {
+func (d *PostgresDBLinkRepository) MarkDeletedBatch(ctx context.Context, links []domain.URLLink) error {
 	queryDelete := `
-		UPDATE links
-		SET is_deleted = true
-		WHERE user_id = $1 AND short_url = ANY($2)
-	`
+	UPDATE links
+	SET is_deleted = true
+	WHERE user_id = $1 AND short_url = $2`
 
-	_, err := d.db.ExecContext(ctx, queryDelete, userID, pq.Array(shortURLs))
+	tx, err := d.db.BeginTxx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("Ошибка начала транзакции: %v\n", err)
+	}
+	for _, link := range links {
+		_, err = tx.ExecContext(ctx, queryDelete, link.UserID, link.ShortURL)
+
+		if err != nil {
+			log.Println("Ошибка при пометке на удаление")
+			if rbErr := tx.Rollback(); rbErr != nil {
+				fmt.Printf("Ошибка при откате транзакции: %v\n", rbErr)
+			}
+			return err
+		}
+	}
+	// Коммитим транзакцию
+	if err := tx.Commit(); err != nil {
+		fmt.Printf("Ошибка при коммите транзакции: %v\n", err)
+	}
 	return err
 }

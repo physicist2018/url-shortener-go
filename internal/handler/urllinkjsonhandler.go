@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/physicist2018/url-shortener-go/internal/domain"
@@ -151,17 +150,20 @@ func (h *URLLinkHandler) HandleDeleteShortedURLsForUserJSON(w http.ResponseWrite
 		return
 	}
 
-	rec := DeleteRecordTask{
-		UserID:    userID,
-		ShortURLs: shortLinks,
+	urltodelete := make([]domain.URLLink, len(shortLinks))
+
+	for i := range urltodelete {
+		urltodelete[i].UserID = userID
+		urltodelete[i].ShortURL = shortLinks[i]
 	}
+
 	h.log.Info().Int("len(deleteQueue) = ", len(h.deleteQueue)).Msg("длина очереди на удаление")
 	// Отправка задачи в канал с таймаутом
 	ctx, cancel := context.WithTimeout(r.Context(), time.Second*5) // Таймаут 5 секунд
 	defer cancel()
 
 	select {
-	case h.deleteQueue <- rec:
+	case h.deleteQueue <- urltodelete:
 		response := map[string]string{
 			"status":  "accepted",
 			"message": "Delete request accepted",
@@ -210,32 +212,4 @@ func (h *URLLinkHandler) sendBatchJSONResponseForUser(w http.ResponseWriter, sta
 
 func (h *URLLinkHandler) decodeArrayOfShortLinks(r *http.Request, v interface{}) error {
 	return json.NewDecoder(r.Body).Decode(v)
-}
-
-func (h *URLLinkHandler) processMarkDeleteRecords(ctx context.Context, wg *sync.WaitGroup) {
-	defer wg.Done()
-	h.log.Info().Msg("Sart deleting goroutine")
-	for {
-		select {
-		case rec, ok := <-h.deleteQueue:
-			if !ok {
-				// Канал закрыт, завершаем горутину
-				h.log.Info().Msg("Delete queue channel closed, stopping goroutine")
-				return
-			}
-
-			ctx, cancel := context.WithTimeout(context.Background(), timeToDeleteTimeout)
-			defer cancel()
-
-			err := h.service.MarkURLsAsDeleted(ctx, rec.UserID, rec.ShortURLs)
-			if err != nil {
-				h.log.Info().Err(err).Msg("Failed to mark URLs as deleted:")
-			} else {
-				h.log.Info().Str("userID", rec.UserID).Msg("Successfully marked URLs as deleted for user")
-			}
-		case <-ctx.Done():
-			h.log.Info().Msg("Received shutdown signal, stopping goroutine")
-			return
-		}
-	}
 }

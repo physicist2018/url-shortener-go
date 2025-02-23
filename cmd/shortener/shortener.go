@@ -35,7 +35,7 @@ func main() {
 	var linkRepo domain.URLLinkRepo
 
 	if cfg.DatabaseDSN != "" {
-		linkRepo, err = repofactory.CreateRepo("postgres", cfg.DatabaseDSN)
+		linkRepo, err = repofactory.CreateRepo("sqlite", cfg.DatabaseDSN)
 	} else {
 		linkRepo, err = repofactory.CreateRepo("inmemory", cfg.FileStoragePath)
 	}
@@ -50,7 +50,6 @@ func main() {
 	}()
 
 	var wg sync.WaitGroup
-	wg.Add(1)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -63,5 +62,6 @@ func main() {
 	srv.Start()
 
 	linkHandler.Close() // Закрываем канал обмена с горутиной, что приводит к очистке очереди и завершению
+	logger.Info().Msg("Closing link handler")
 	wg.Wait()
 }
