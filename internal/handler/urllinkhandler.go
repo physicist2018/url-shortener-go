@@ -36,14 +36,14 @@ func NewURLLinkHandler(service domain.URLLinkService, baseURL string, logger zer
 		log:         logger,
 		deleteQueue: make(chan []domain.URLLink, MaxQueueCapacity),
 	}
-	var batch []domain.URLLink
+
 	ticker := time.NewTicker(processingInterval)
 
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
 		defer ticker.Stop() // Останавливаем таймер при завершении горутины
-
+		var batch []domain.URLLink
 		for {
 			select {
 			case req, ok := <-h.deleteQueue:
@@ -63,7 +63,7 @@ func NewURLLinkHandler(service domain.URLLinkService, baseURL string, logger zer
 					if err := h.service.MarkURLAsDeleted(ctx, batch); err != nil {
 						h.log.Error().Err(err).Msg("Ошибка при пометке ссылок на удаление")
 					} else {
-						h.log.Info().Int("количество удаленных ссылок", len(batch)).Msg("Ссылки успешно помечены на удаление")
+						h.log.Info().Int("количество удаленных ссылок", len(batch))
 					}
 					batch = nil // Очищаем пакет
 				}
@@ -72,7 +72,7 @@ func NewURLLinkHandler(service domain.URLLinkService, baseURL string, logger zer
 					if err := h.service.MarkURLAsDeleted(ctx, batch); err != nil {
 						h.log.Error().Err(err).Msg("Ошибка при пометке ссылок на удаление")
 					} else {
-						h.log.Info().Int("количество удаленных ссылок", len(batch)).Msg("Ссылки успешно помечены на удаление")
+						h.log.Info().Int("количество удаленных ссылок", len(batch))
 					}
 					batch = nil // Очищаем пакет
 				}
@@ -82,6 +82,8 @@ func NewURLLinkHandler(service domain.URLLinkService, baseURL string, logger zer
 				if len(batch) > 0 {
 					if err := h.service.MarkURLAsDeleted(ctx, batch); err != nil {
 						h.log.Error().Err(err).Msg("Ошибка при пометке ссылок на удаление")
+					} else {
+						h.log.Info().Int("количество удаленных ссылок", len(batch))
 					}
 				}
 				return
