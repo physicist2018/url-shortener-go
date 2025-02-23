@@ -130,7 +130,7 @@ func (d *SQLiteDBLinkRepository) MarkDeletedBatch(ctx context.Context, links []d
 
 	tx, err := d.db.BeginTxx(ctx, nil)
 	if err != nil {
-		return fmt.Errorf("ошибка начала транзакции: %v\n", err)
+		return fmt.Errorf("ошибка начала транзакции: %v", err)
 	}
 	for _, link := range links {
 		_, err = tx.ExecContext(ctx, queryDelete, link.UserID, link.ShortURL)
