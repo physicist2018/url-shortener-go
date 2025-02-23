@@ -27,6 +27,7 @@ type URLLinkHandler struct {
 	baseURL     string
 	log         zerolog.Logger
 	deleteQueue chan []domain.URLLink
+	mu          sync.Mutex
 }
 
 func NewURLLinkHandler(service domain.URLLinkService, baseURL string, logger zerolog.Logger, ctx context.Context, wg *sync.WaitGroup) *URLLinkHandler {

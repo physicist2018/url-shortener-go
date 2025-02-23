@@ -138,6 +138,9 @@ func (h *URLLinkHandler) HandleGetAllShortedURLsForUserJSON(w http.ResponseWrite
 }
 
 func (h *URLLinkHandler) HandleDeleteShortedURLsForUserJSON(w http.ResponseWriter, r *http.Request) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
 	userID, ok := r.Context().Value(domain.UserIDKey).(string)
 	if !ok || userID == "" {
 		http.Error(w, "UserID is missing or invalid", http.StatusUnauthorized)
