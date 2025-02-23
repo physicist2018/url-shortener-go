@@ -133,7 +133,7 @@ func (d *PostgresDBLinkRepository) MarkDeletedBatch(ctx context.Context, links [
 
 	tx, err := d.db.BeginTxx(ctx, nil)
 	if err != nil {
-		return fmt.Errorf("Ошибка начала транзакции: %v\n", err)
+		return fmt.Errorf("ошибка начала транзакции: %v", err)
 	}
 	for _, link := range links {
 		_, err = tx.ExecContext(ctx, queryDelete, link.UserID, link.ShortURL)
