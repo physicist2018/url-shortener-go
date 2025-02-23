@@ -80,18 +80,18 @@ func (mr *MockURLLinkServiceMockRecorder) GetOriginalURL(ctx, link interface{}) 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOriginalURL", reflect.TypeOf((*MockURLLinkService)(nil).GetOriginalURL), ctx, link)
 }
 
-// MarkURLAsDeleted mocks base method.
-func (m *MockURLLinkService) MarkURLAsDeleted(ctx context.Context, links []domain.URLLink) error {
+// MarkURLsAsDeleted mocks base method.
+func (m *MockURLLinkService) MarkURLsAsDeleted(ctx context.Context, links domain.DeleteRecordTask) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "MarkURLAsDeleted", ctx, links)
+	ret := m.ctrl.Call(m, "MarkURLsAsDeleted", ctx, links)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// MarkURLAsDeleted indicates an expected call of MarkURLAsDeleted.
-func (mr *MockURLLinkServiceMockRecorder) MarkURLAsDeleted(ctx, links interface{}) *gomock.Call {
+// MarkURLsAsDeleted indicates an expected call of MarkURLsAsDeleted.
+func (mr *MockURLLinkServiceMockRecorder) MarkURLsAsDeleted(ctx, links interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MarkURLAsDeleted", reflect.TypeOf((*MockURLLinkService)(nil).MarkURLAsDeleted), ctx, links)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MarkURLsAsDeleted", reflect.TypeOf((*MockURLLinkService)(nil).MarkURLsAsDeleted), ctx, links)
 }
 
 // Ping mocks base method.

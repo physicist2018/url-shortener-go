@@ -26,7 +26,7 @@ type URLLinkHandler struct {
 	service     domain.URLLinkService
 	baseURL     string
 	log         zerolog.Logger
-	deleteQueue chan []domain.URLLink
+	deleteQueue chan domain.DeleteRecordTask
 	mu          sync.Mutex
 }
 
@@ -35,58 +35,35 @@ func NewURLLinkHandler(service domain.URLLinkService, baseURL string, logger zer
 		service:     service,
 		baseURL:     baseURL,
 		log:         logger,
-		deleteQueue: make(chan []domain.URLLink, MaxQueueCapacity),
+		deleteQueue: make(chan domain.DeleteRecordTask, MaxQueueCapacity),
 	}
 
 	ticker := time.NewTicker(processingInterval)
 
 	wg.Add(1)
+
 	go func() {
 		defer wg.Done()
 		defer ticker.Stop() // Останавливаем таймер при завершении горутины
-		var batch []domain.URLLink
+
 		for {
 			select {
 			case req, ok := <-h.deleteQueue:
 				if !ok {
 					// Канал закрыт, завершаем горутину
 					h.log.Info().Msg("Канал удаления закрыт, завершаем горутину")
-					if (batch != nil) && (len(batch) > 0) {
-						if err := h.service.MarkURLAsDeleted(ctx, batch); err != nil {
-							h.log.Error().Err(err).Msg("Ошибка при пометке ссылок на удаление")
-						}
-					}
 					return
 				}
-				h.log.Debug().Int("количество записей на удаление", len(req)).Send()
-				batch = append(batch, req...)
-				if (batch != nil) && (len(batch) >= batchSize) {
-					if err := h.service.MarkURLAsDeleted(ctx, batch); err != nil {
-						h.log.Error().Err(err).Msg("Ошибка при пометке ссылок на удаление")
-					} else {
-						h.log.Info().Int("количество удаленных ссылок", len(batch))
-					}
-					batch = nil // Очищаем пакет
+
+				if err := h.service.MarkURLsAsDeleted(ctx, req); err != nil {
+					h.log.Error().Err(err).Msg("Ошибка при пометке ссылок на удаление")
+				} else {
+					h.log.Info().Int("количество удаленных ссылок", len(req.ShortURLs))
 				}
-			case <-ticker.C:
-				if (batch != nil) && (len(batch) > 0) {
-					if err := h.service.MarkURLAsDeleted(ctx, batch); err != nil {
-						h.log.Error().Err(err).Msg("Ошибка при пометке ссылок на удаление")
-					} else {
-						h.log.Info().Int("количество удаленных ссылок", len(batch))
-					}
-					batch = nil // Очищаем пакет
-				}
+
 			case <-ctx.Done():
 				// Получен сигнал завершения через контекст
 				h.log.Info().Msg("Получен сигнал завершения через контекст")
-				if len(batch) > 0 {
-					if err := h.service.MarkURLAsDeleted(ctx, batch); err != nil {
-						h.log.Error().Err(err).Msg("Ошибка при пометке ссылок на удаление")
-					} else {
-						h.log.Info().Int("количество удаленных ссылок", len(batch))
-					}
-				}
 				return
 			}
 

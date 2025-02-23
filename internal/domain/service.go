@@ -1,12 +1,13 @@
 package domain
 
-import "context"
+import (
+	"context"
+)
 
 type URLLinkService interface {
 	CreateShortURL(ctx context.Context, link URLLink) (URLLink, error)
 	GetOriginalURL(ctx context.Context, link URLLink) (URLLink, error)
-	MarkURLAsDeleted(ctx context.Context, links []URLLink) error
-	//DeleteShortLinksForUser(ctx context.Context, userID string, shortURLs []string) error
+	MarkURLsAsDeleted(ctx context.Context, links DeleteRecordTask) error
 	FindAll(ctx context.Context, userID string) ([]URLLink, error)
 	Ping(ctx context.Context) error
 }

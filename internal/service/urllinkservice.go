@@ -55,6 +55,6 @@ func (u *URLLinkService) Ping(ctx context.Context) error {
 	return u.repo.Ping(ctx)
 }
 
-func (u *URLLinkService) MarkURLAsDeleted(ctx context.Context, links []domain.URLLink) error {
+func (u *URLLinkService) MarkURLsAsDeleted(ctx context.Context, links domain.DeleteRecordTask) error {
 	return u.repo.MarkDeletedBatch(ctx, links)
 }

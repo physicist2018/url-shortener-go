@@ -4,9 +4,9 @@ import (
 	"context"
 	"database/sql"
 	_ "embed"
+	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -122,30 +122,23 @@ func (d *SQLiteDBLinkRepository) Close() error {
 	return nil
 }
 
-func (d *SQLiteDBLinkRepository) MarkDeletedBatch(ctx context.Context, links []domain.URLLink) error {
-	queryDelete := `
-	UPDATE links
-	SET is_deleted = true
-	WHERE user_id = ? AND short_url = ?`
+func (d *SQLiteDBLinkRepository) MarkDeletedBatch(ctx context.Context, links domain.DeleteRecordTask) error {
 
-	tx, err := d.db.BeginTxx(ctx, nil)
+	jsonArray, err := json.Marshal(links.ShortURLs)
 	if err != nil {
-		return fmt.Errorf("ошибка начала транзакции: %v", err)
+		return fmt.Errorf("ошибка при преобразовании в JSON: %v", err)
 	}
-	for _, link := range links {
-		_, err = tx.ExecContext(ctx, queryDelete, link.UserID, link.ShortURL)
 
-		if err != nil {
-			log.Println("Ошибка при пометке на удаление")
-			if rbErr := tx.Rollback(); rbErr != nil {
-				fmt.Printf("Ошибка при откате транзакции: %v\n", rbErr)
-			}
-			return err
-		}
-	}
-	// Коммитим транзакцию
-	if err := tx.Commit(); err != nil {
-		fmt.Printf("Ошибка при коммите транзакции: %v\n", err)
-	}
+	// SQL-запрос с использованием json_array и json_each
+	queryDelete := `
+        UPDATE links
+        SET is_deleted = true
+        WHERE user_id= ? AND short_url IN (
+            SELECT value FROM json_each(?)
+        );
+    `
+
+	// Выполняем запрос
+	_, err = d.db.Exec(queryDelete, links.UserID, string(jsonArray))
 	return err
 }

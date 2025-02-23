@@ -41,12 +41,6 @@ type (
 		ShortURL string `json:"short_url"`
 		LongURL  string `json:"original_url"`
 	}
-
-	// пакет передачи данных горутине удаления записей из таблицы
-	DeleteRecordTask struct {
-		UserID    string
-		ShortURLs []string
-	}
 )
 
 func (h *URLLinkHandler) HandleGenerateShortURLJson(w http.ResponseWriter, r *http.Request) {
@@ -146,18 +140,17 @@ func (h *URLLinkHandler) HandleDeleteShortedURLsForUserJSON(w http.ResponseWrite
 		http.Error(w, "UserID is missing or invalid", http.StatusUnauthorized)
 		return
 	}
-	h.log.Info().Str("userID", userID).Msg("User requested to delete short URLs")
+
+	h.log.Info().Str("userID", userID).Msg("Пользователь запросивший удаление")
 	var shortLinks []string
 	if err := h.decodeArrayOfShortLinks(r, &shortLinks); err != nil || len(shortLinks) == 0 {
-		http.Error(w, "Некорректное тело запроса. Это должен быть список строк json", http.StatusBadRequest)
+		http.Error(w, "Некорректное тело запроса. Это должен быть список котортких ссылок в json", http.StatusBadRequest)
 		return
 	}
 
-	urltodelete := make([]domain.URLLink, len(shortLinks))
-
-	for i := range urltodelete {
-		urltodelete[i].UserID = userID
-		urltodelete[i].ShortURL = shortLinks[i]
+	urltodelete := domain.DeleteRecordTask{
+		UserID:    userID,
+		ShortURLs: shortLinks,
 	}
 
 	h.log.Info().Int("len(deleteQueue)", len(h.deleteQueue)).Msg("длина очереди на удаление")

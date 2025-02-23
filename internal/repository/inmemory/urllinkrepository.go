@@ -76,14 +76,14 @@ func (m *InMemoryLinkRepository) FindAll(ctx context.Context, userID string) ([]
 	return nil, nil
 }
 
-func (m *InMemoryLinkRepository) MarkDeletedBatch(ctx context.Context, links []domain.URLLink) error {
+func (m *InMemoryLinkRepository) MarkDeletedBatch(ctx context.Context, links domain.DeleteRecordTask) error {
 	// пробегаемся по всем ссылкам в репе и метим на удаление те, где совпадает пользователь и короткая ссылка
 
-	for _, link := range links {
-		if urllink, ok := m.links[link.ShortURL]; ok {
-			if urllink.UserID == link.UserID {
+	for _, link := range links.ShortURLs {
+		if urllink, ok := m.links[link]; ok {
+			if urllink.UserID == links.UserID {
 				urllink.DeletedFlag = true
-				m.links[link.ShortURL] = urllink
+				m.links[link] = urllink
 			}
 		}
 	}
