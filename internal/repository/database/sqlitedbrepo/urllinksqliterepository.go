@@ -74,7 +74,7 @@ func (d *SQLiteDBLinkRepository) Store(ctx context.Context, urllink domain.URLLi
 
 // change function specification
 func (d *SQLiteDBLinkRepository) Find(ctx context.Context, shortURL string) (domain.URLLink, error) {
-	query := `SELECT user_id, short_url, original_url FROM links WHERE short_url=$1 LIMIT 1;`
+	query := `SELECT user_id, short_url, original_url, is_deleted FROM links WHERE short_url=$1 LIMIT 1;`
 	var urllink domain.URLLink
 	if err := d.db.GetContext(ctx, &urllink, query, shortURL); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {

@@ -77,7 +77,7 @@ func (d *PostgresDBLinkRepository) Store(ctx context.Context, urllink domain.URL
 
 // TODO change function input parameters
 func (d *PostgresDBLinkRepository) Find(ctx context.Context, shortURL string) (domain.URLLink, error) {
-	query := `SELECT user_id, short_url, original_url FROM links WHERE short_url=$1 AND user_id=$2 LIMIT 1;`
+	query := `SELECT user_id, short_url, original_url, is_deleted FROM links WHERE short_url=$1 AND user_id=$2 LIMIT 1;`
 	var urllink domain.URLLink
 	if err := d.db.GetContext(ctx, &urllink, query, shortURL, ""); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
