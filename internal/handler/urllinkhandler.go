@@ -50,7 +50,7 @@ func NewURLLinkHandler(service domain.URLLinkService, baseURL string, logger zer
 				if !ok {
 					// Канал закрыт, завершаем горутину
 					h.log.Info().Msg("Канал удаления закрыт, завершаем горутину")
-					if len(batch) > 0 {
+					if (batch != nil) && (len(batch) > 0) {
 						if err := h.service.MarkURLAsDeleted(ctx, batch); err != nil {
 							h.log.Error().Err(err).Msg("Ошибка при пометке ссылок на удаление")
 						}
@@ -59,7 +59,7 @@ func NewURLLinkHandler(service domain.URLLinkService, baseURL string, logger zer
 				}
 				h.log.Debug().Int("количество записей на удаление", len(req)).Send()
 				batch = append(batch, req...)
-				if len(batch) >= batchSize {
+				if (batch != nil) && (len(batch) >= batchSize) {
 					if err := h.service.MarkURLAsDeleted(ctx, batch); err != nil {
 						h.log.Error().Err(err).Msg("Ошибка при пометке ссылок на удаление")
 					} else {
@@ -68,7 +68,7 @@ func NewURLLinkHandler(service domain.URLLinkService, baseURL string, logger zer
 					batch = nil // Очищаем пакет
 				}
 			case <-ticker.C:
-				if len(batch) > 0 {
+				if (batch != nil) && (len(batch) > 0) {
 					if err := h.service.MarkURLAsDeleted(ctx, batch); err != nil {
 						h.log.Error().Err(err).Msg("Ошибка при пометке ссылок на удаление")
 					} else {
