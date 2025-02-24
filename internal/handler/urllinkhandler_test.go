@@ -12,6 +12,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/physicist2018/url-shortener-go/internal/deleter"
 	"github.com/physicist2018/url-shortener-go/internal/domain"
 	"github.com/physicist2018/url-shortener-go/internal/mocks"
 	"github.com/physicist2018/url-shortener-go/internal/repository/repoerrors"
@@ -23,11 +24,12 @@ func TestShortenURL_Success(t *testing.T) {
 
 	mockService := mocks.NewMockURLLinkService(ctrl)
 	logger := zerolog.New(nil)
+	linkDeleter := deleter.NewDeleter(mockService, logger)
 	var wg sync.WaitGroup
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-
-	h := NewURLLinkHandler(mockService, "http://localhost", logger, ctx, &wg)
+	linkDeleter.Start(ctx, &wg) //Запускаем горутину асинхронного удаления ссылок
+	h := NewURLLinkHandler(mockService, "http://localhost", logger, linkDeleter)
 
 	w := httptest.NewRecorder()
 	body := bytes.NewBufferString("https://example.com")
@@ -65,11 +67,13 @@ func TestShortenURL_Conflict(t *testing.T) {
 
 	mockService := mocks.NewMockURLLinkService(ctrl)
 	logger := zerolog.New(nil)
+	linkDeleter := deleter.NewDeleter(mockService, logger)
 	var wg sync.WaitGroup
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+	linkDeleter.Start(ctx, &wg) //Запускаем горутину асинхронного удаления ссылок
 
-	h := NewURLLinkHandler(mockService, "http://localhost", logger, ctx, &wg)
+	h := NewURLLinkHandler(mockService, "http://localhost", logger, linkDeleter)
 
 	w := httptest.NewRecorder()
 	body := bytes.NewBufferString("https://example.com")
@@ -108,10 +112,13 @@ func TestShortenURL_BadRequest(t *testing.T) {
 
 	mockService := mocks.NewMockURLLinkService(ctrl)
 	logger := zerolog.New(nil)
+	linkDeleter := deleter.NewDeleter(mockService, logger)
 	var wg sync.WaitGroup
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	h := NewURLLinkHandler(mockService, "http://localhost", logger, ctx, &wg)
+	linkDeleter.Start(ctx, &wg) //Запускаем горутину асинхронного удаления ссылок
+
+	h := NewURLLinkHandler(mockService, "http://localhost", logger, linkDeleter)
 
 	tests := []struct {
 		name string
@@ -149,10 +156,13 @@ func TestShortenURL_InternalServerError(t *testing.T) {
 
 	mockService := mocks.NewMockURLLinkService(ctrl)
 	logger := zerolog.New(nil)
+	linkDeleter := deleter.NewDeleter(mockService, logger)
 	var wg sync.WaitGroup
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	h := NewURLLinkHandler(mockService, "http://localhost", logger, ctx, &wg)
+	linkDeleter.Start(ctx, &wg) //Запускаем горутину асинхронного удаления ссылок
+
+	h := NewURLLinkHandler(mockService, "http://localhost", logger, linkDeleter)
 
 	w := httptest.NewRecorder()
 	body := bytes.NewBufferString("https://example.com")
