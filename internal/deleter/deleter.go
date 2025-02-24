@@ -66,14 +66,17 @@ func (d *Deleter) Start(ctx context.Context, wg *sync.WaitGroup) {
 func (d *Deleter) Enqueue(task domain.DeleteRecordTask) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
+	d.deleteQueue <- task
+	// Задача успешно добавлена в очередь
+	d.log.Debug().Msg("Задача успешно добавлена в очередь")
 
-	select {
-	case d.deleteQueue <- task:
-		// Задача успешно добавлена в очередь
-		d.log.Debug().Msg("Задача успешно добавлена в очередь")
-	default:
-		d.log.Warn().Msg("Очередь удаления переполнена, задача не добавлена")
-	}
+	// select {
+	// case d.deleteQueue <- task:
+	// 	// Задача успешно добавлена в очередь
+	// 	d.log.Debug().Msg("Задача успешно добавлена в очередь")
+	// default:
+	// 	d.log.Warn().Msg("Очередь удаления переполнена, задача не добавлена")
+	// }
 }
 
 func (d *Deleter) Close() {
