@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/physicist2018/url-shortener-go/internal/config"
+	"github.com/physicist2018/url-shortener-go/internal/deleter"
 	"github.com/physicist2018/url-shortener-go/internal/domain"
 	"github.com/physicist2018/url-shortener-go/internal/handler"
 	"github.com/physicist2018/url-shortener-go/internal/repository/repofactorymethod"
@@ -54,7 +55,10 @@ func main() {
 	defer cancel()
 
 	linkService := service.NewURLLinkService(linkRepo, randomStringGenerator, logger)
-	linkHandler := handler.NewURLLinkHandler(linkService, cfg.BaseURLServer, logger, ctx, &wg)
+	linkDeleter := deleter.NewDeleter(linkService, logger)
+	linkDeleter.Start(ctx, &wg) //Запускаем горутину асинхронного удаления ссылок
+
+	linkHandler := handler.NewURLLinkHandler(linkService, cfg.BaseURLServer, logger, linkDeleter)
 
 	r := router.NewRouter(linkHandler, logger)
 

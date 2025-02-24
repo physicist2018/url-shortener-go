@@ -151,8 +151,6 @@ func (h *URLLinkHandler) HandleGetAllShortedURLsForUserJSON(w http.ResponseWrite
 }
 
 func (h *URLLinkHandler) HandleDeleteShortedURLsForUserJSON(w http.ResponseWriter, r *http.Request) {
-	h.mu.Lock()
-	defer h.mu.Unlock()
 	h.log.Info().Int("GoID", int(GetGoid())).Msg("HandleGenerateShortURLJson")
 	userID, ok := r.Context().Value(domain.UserIDKey).(string)
 	if !ok || userID == "" {
@@ -172,23 +170,26 @@ func (h *URLLinkHandler) HandleDeleteShortedURLsForUserJSON(w http.ResponseWrite
 		ShortURLs: shortLinks,
 	}
 
-	h.log.Info().Int("len(deleteQueue)", len(h.deleteQueue)).Msg("длина очереди на удаление")
+	h.log.Info().Int("len(deleteQueue)", h.deleter.Size()).Msg("длина очереди на удаление")
 	// Отправка задачи в канал с таймаутом
-	ctx, cancel := context.WithTimeout(r.Context(), time.Second*5) // Таймаут 5 секунд
-	defer cancel()
+	// ctx, cancel := context.WithTimeout(r.Context(), time.Second*5) // Таймаут 5 секунд
+	// defer cancel()
 
-	select {
-	case h.deleteQueue <- urltodelete:
-		// response := map[string]string{
-		// 	"status":  "accepted",
-		// 	"message": "Delete request accepted",
-		// }
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusAccepted)
-		//json.NewEncoder(w).Encode(response)
-	case <-ctx.Done():
-		http.Error(w, "Delete queue is full, try again later", http.StatusServiceUnavailable)
-	}
+	h.deleter.Enqueue(urltodelete)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusAccepted)
+	// select {
+	// case h.deleteQueue <- urltodelete:
+	// 	// response := map[string]string{
+	// 	// 	"status":  "accepted",
+	// 	// 	"message": "Delete request accepted",
+	// 	// }
+	// 	w.Header().Set("Content-Type", "application/json")
+	// 	w.WriteHeader(http.StatusAccepted)
+	// 	//json.NewEncoder(w).Encode(response)
+	// case <-ctx.Done():
+	// 	http.Error(w, "Delete queue is full, try again later", http.StatusServiceUnavailable)
+	// }
 
 }
 

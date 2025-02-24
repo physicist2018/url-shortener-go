@@ -6,9 +6,9 @@ import (
 	"io"
 	"net/http"
 	"strings"
-	"sync"
 	"time"
 
+	"github.com/physicist2018/url-shortener-go/internal/deleter"
 	"github.com/physicist2018/url-shortener-go/internal/domain"
 	"github.com/physicist2018/url-shortener-go/internal/repository/repoerrors"
 	"github.com/rs/zerolog"
@@ -23,52 +23,22 @@ const (
 )
 
 type URLLinkHandler struct {
-	service     domain.URLLinkService
-	baseURL     string
-	log         zerolog.Logger
-	deleteQueue chan domain.DeleteRecordTask
-	mu          sync.Mutex
+	service domain.URLLinkService
+	baseURL string
+	log     zerolog.Logger
+	//deleteQueue chan domain.DeleteRecordTask
+	deleter *deleter.Deleter
+	//mu          sync.Mutex
 }
 
-func NewURLLinkHandler(service domain.URLLinkService, baseURL string, logger zerolog.Logger, ctx context.Context, wg *sync.WaitGroup) *URLLinkHandler {
+func NewURLLinkHandler(service domain.URLLinkService, baseURL string, logger zerolog.Logger, deleter *deleter.Deleter) *URLLinkHandler {
 	h := &URLLinkHandler{
-		service:     service,
-		baseURL:     baseURL,
-		log:         logger,
-		deleteQueue: make(chan domain.DeleteRecordTask, MaxQueueCapacity),
+		service: service,
+		baseURL: baseURL,
+		log:     logger,
+		deleter: deleter,
 	}
 
-	ticker := time.NewTicker(processingInterval)
-
-	wg.Add(1)
-
-	go func() {
-		defer wg.Done()
-		defer ticker.Stop() // Останавливаем таймер при завершении горутины
-
-		for {
-			select {
-			case req, ok := <-h.deleteQueue:
-				if !ok {
-					// Канал закрыт, завершаем горутину
-					h.log.Info().Msg("Канал удаления закрыт, завершаем горутину")
-					return
-				}
-
-				if err := h.service.MarkURLsAsDeleted(ctx, req); err != nil {
-					h.log.Error().Err(err).Msg("Ошибка при пометке ссылок на удаление")
-				} else {
-					h.log.Info().Int("количество удаленных ссылок", len(req.ShortURLs))
-				}
-
-			case <-ctx.Done():
-				// Получен сигнал завершения через контекст
-				h.log.Info().Msg("Получен сигнал завершения через контекст")
-				return
-			}
-
-		}
-	}()
 	h.log.Info().Msg("Инициализация хэндлеров прошла успешно")
 	return h
 }
@@ -144,7 +114,7 @@ func (h *URLLinkHandler) PingHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *URLLinkHandler) Close() {
-	if h.deleteQueue != nil {
-		close(h.deleteQueue)
+	if h.deleter != nil {
+		h.deleter.Close()
 	}
 }
