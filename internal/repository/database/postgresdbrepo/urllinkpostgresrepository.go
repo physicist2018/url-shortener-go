@@ -125,22 +125,24 @@ func (d *PostgresDBLinkRepository) Close() error {
 
 func (d *PostgresDBLinkRepository) MarkDeletedBatch(ctx context.Context, links []domain.URLLink) error {
 	queryDelete := `
-		WITH updated_data AS (
-			SELECT unnest($1::string[]) as user_id, unnest($2::string[]) as short_url)
+		WITH updated_data AS ( 
+			SELECT unnest($1::VARCHAR[]) AS user_id, unnest($2::VARCHAR[]) AS short_url
 		)
-			UPDATE links l SET is_deleted = true 	FROM updated_data ud
-			WHERE l.user_id = ud.user_id AND l.short_url = ud.short_url;
-			`
+		UPDATE links l
+		SET is_deleted = TRUE
+		FROM updated_data ud
+		WHERE l.user_id = ud.user_id AND l.short_url = ud.short_url;
+		`
 
-	user_ids := make([]string, len(links))
-	short_links := make([]string, len(links))
+	userIds := make([]string, len(links))
+	shortLinks := make([]string, len(links))
 
 	for i, l := range links {
-		user_ids[i] = l.UserID
-		short_links[i] = l.ShortURL
+		userIds[i] = l.UserID
+		shortLinks[i] = l.ShortURL
 	}
 
-	_, err := d.db.ExecContext(ctx, queryDelete, pq.Array(user_ids), pq.Array(short_links))
+	_, err := d.db.ExecContext(ctx, queryDelete, pq.Array(userIds), pq.Array(shortLinks))
 	if err != nil {
 		return errors.Join(repoerrors.ErrorMarkDeletedBatch, err)
 	}
