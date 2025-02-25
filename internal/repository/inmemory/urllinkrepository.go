@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
+	"log"
 	"os"
 	"strings"
 	"sync"
@@ -24,7 +26,7 @@ func NewInMemoryLinkRepository(dbFilePath string) (*InMemoryLinkRepository, erro
 	}
 
 	// Открываем файл для добавления данных
-	file, err := os.OpenFile(dbFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	file, err := os.OpenFile(dbFilePath, os.O_RDWR|os.O_CREATE, 0644)
 	if err != nil {
 		return nil, err
 	}
@@ -35,6 +37,8 @@ func NewInMemoryLinkRepository(dbFilePath string) (*InMemoryLinkRepository, erro
 			return nil, err
 		}
 	}
+
+	repo.dbfile.Seek(0, 2) // Go to the end of the file
 
 	return repo, nil
 }
@@ -73,7 +77,18 @@ func (m *InMemoryLinkRepository) Find(ctx context.Context, shortURL string) (dom
 
 func (m *InMemoryLinkRepository) FindAll(ctx context.Context, userID string) ([]domain.URLLink, error) {
 
-	return nil, nil
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	var result []domain.URLLink
+	for _, link := range m.links {
+		log.Println(link.UserID)
+		if link.UserID == userID {
+			result = append(result, link)
+		}
+	}
+
+	return result, nil
 }
 
 func (m *InMemoryLinkRepository) MarkDeletedBatch(ctx context.Context, links []domain.URLLink) error {
@@ -82,11 +97,9 @@ func (m *InMemoryLinkRepository) MarkDeletedBatch(ctx context.Context, links []d
 	defer m.mu.Unlock()
 
 	for _, link := range links {
-		if urllink, ok := m.links[link.ShortURL]; ok {
-			if urllink.UserID == link.UserID {
-				urllink.DeletedFlag = true
-				m.links[link.ShortURL] = urllink
-			}
+		if urllink, ok := m.links[link.ShortURL]; ok && urllink.UserID == link.UserID {
+			urllink.DeletedFlag = true
+			m.links[link.ShortURL] = urllink
 		}
 	}
 
@@ -101,10 +114,11 @@ func (m *InMemoryLinkRepository) load() error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	data, err := os.ReadFile(m.dbfile.Name())
+	data, err := io.ReadAll(m.dbfile)
 	if err != nil {
 		return err
 	}
+	m.dbfile.Seek(0, 2) // set to the end of file
 
 	lines := strings.Split(string(data), "\n")
 

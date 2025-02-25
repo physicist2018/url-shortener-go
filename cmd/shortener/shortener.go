@@ -13,6 +13,7 @@ import (
 	"github.com/physicist2018/url-shortener-go/internal/router"
 	"github.com/physicist2018/url-shortener-go/internal/server"
 	"github.com/physicist2018/url-shortener-go/internal/service"
+	"github.com/physicist2018/url-shortener-go/internal/stringgenstategy"
 	uniquestring "github.com/physicist2018/url-shortener-go/pkg/uniquestring"
 	"github.com/rs/zerolog"
 )
@@ -30,7 +31,10 @@ func main() {
 	logger.Info().Msg(cfg.String())
 
 	logger.Info().Msg("инициализация генератора случайных ссылок")
-	randomStringGenerator := uniquestring.NewRandomStringDefault()
+	randomStringStrategy := uniquestring.NewUUIDString()
+
+	stringGeneratorContext := stringgenstategy.StringGeneratorContext{}
+	stringGeneratorContext.SetStrategy(randomStringStrategy)
 
 	repofactory := repofactorymethod.NewRepoFactoryMethod()
 	var linkRepo domain.URLLinkRepo
@@ -54,7 +58,7 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	linkService := service.NewURLLinkService(linkRepo, randomStringGenerator, logger)
+	linkService := service.NewURLLinkService(linkRepo, stringGeneratorContext, logger)
 	linkDeleter := deleter.NewDeleter(linkService, logger)
 	linkDeleter.Start(ctx, &wg) //Запускаем горутину асинхронного удаления ссылок
 
