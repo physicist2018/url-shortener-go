@@ -81,7 +81,7 @@ func (mr *MockURLLinkServiceMockRecorder) GetOriginalURL(ctx, link interface{}) 
 }
 
 // MarkURLsAsDeleted mocks base method.
-func (m *MockURLLinkService) MarkURLsAsDeleted(ctx context.Context, links domain.DeleteRecordTask) error {
+func (m *MockURLLinkService) MarkURLsAsDeleted(ctx context.Context, links []domain.URLLink) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "MarkURLsAsDeleted", ctx, links)
 	ret0, _ := ret[0].(error)

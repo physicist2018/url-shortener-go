@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	_ "embed"
 	"errors"
-	"fmt"
 	"time"
 
 	_ "github.com/google/uuid"
@@ -124,21 +123,26 @@ func (d *PostgresDBLinkRepository) Close() error {
 	return nil
 }
 
-func (d *PostgresDBLinkRepository) MarkDeletedBatch(ctx context.Context, links domain.DeleteRecordTask) error {
-	queryDelete := `UPDATE links SET is_deleted = true 	WHERE user_id = $1 AND short_url = ANY($2);`
-	tx, err := d.db.BeginTxx(ctx, nil)
-	if err != nil {
-		return fmt.Errorf("ошибка начала транзакции : %v", err)
-	}
-	_, err = tx.ExecContext(ctx, queryDelete, links.UserID, pq.Array(links.ShortURLs))
-	if err != nil {
-		if rbErr := tx.Rollback(); rbErr != nil {
-			return fmt.Errorf("ошибка отката транзакции : %v", rbErr)
-		}
+func (d *PostgresDBLinkRepository) MarkDeletedBatch(ctx context.Context, links []domain.URLLink) error {
+	queryDelete := `
+		WITH updated_data AS (
+			SELECT unnest($1::string[]) as user_id, unnest($2::string[]) as short_url)
+		)
+			UPDATE links l SET is_deleted = true 	FROM updated_data ud
+			WHERE l.user_id = ud.user_id AND l.short_url = ud.short_url;
+			`
+
+	user_ids := make([]string, len(links))
+	short_links := make([]string, len(links))
+
+	for i, l := range links {
+		user_ids[i] = l.UserID
+		short_links[i] = l.ShortURL
 	}
 
-	if err = tx.Commit(); err != nil {
-		return fmt.Errorf("ошибка коммита транзакции : %v", err)
+	_, err := d.db.ExecContext(ctx, queryDelete, pq.Array(user_ids), pq.Array(short_links))
+	if err != nil {
+		return errors.Join(repoerrors.ErrorMarkDeletedBatch, err)
 	}
 	return nil
 }

@@ -165,31 +165,19 @@ func (h *URLLinkHandler) HandleDeleteShortedURLsForUserJSON(w http.ResponseWrite
 		return
 	}
 
-	urltodelete := domain.DeleteRecordTask{
-		UserID:    userID,
-		ShortURLs: shortLinks,
+	urlstodelete := make([]domain.URLLink, len(shortLinks))
+	for i, ullink := range shortLinks {
+		urlstodelete[i] = domain.URLLink{
+			ShortURL: ullink,
+			UserID:   userID,
+		}
 	}
 
-	h.log.Info().Int("len(deleteQueue)", h.deleter.Size()).Msg("длина очереди на удаление")
-	// Отправка задачи в канал с таймаутом
-	// ctx, cancel := context.WithTimeout(r.Context(), time.Second*5) // Таймаут 5 секунд
-	// defer cancel()
+	h.log.Info().Int("длина очереди на удаление", h.deleter.Size()).Send()
 
-	h.deleter.Enqueue(urltodelete)
+	h.deleter.Enqueue(urlstodelete...)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusAccepted)
-	// select {
-	// case h.deleteQueue <- urltodelete:
-	// 	// response := map[string]string{
-	// 	// 	"status":  "accepted",
-	// 	// 	"message": "Delete request accepted",
-	// 	// }
-	// 	w.Header().Set("Content-Type", "application/json")
-	// 	w.WriteHeader(http.StatusAccepted)
-	// 	//json.NewEncoder(w).Encode(response)
-	// case <-ctx.Done():
-	// 	http.Error(w, "Delete queue is full, try again later", http.StatusServiceUnavailable)
-	// }
 
 }
 
