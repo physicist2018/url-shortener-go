@@ -72,11 +72,17 @@ func (h *URLLinkHandler) ShortenURL(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case errors.Is(err, repoerrors.ErrorShortLinkAlreadyInDB):
 			fullURL := strings.Join([]string{h.baseURL, urllink.ShortURL}, "/")
-			http.Error(w, fullURL, http.StatusConflict)
+			w.WriteHeader(http.StatusConflict)
+			w.Write([]byte(fullURL))
+			//http.Error(w, fullURL, http.StatusConflict)
 		case errors.Is(err, repoerrors.ErrorSQLInternal):
-			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(http.StatusText(http.StatusInternalServerError)))
+			//http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		default:
-			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte(http.StatusText(http.StatusBadRequest)))
+			//http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		}
 		return
 	} else {
