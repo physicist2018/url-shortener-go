@@ -31,7 +31,7 @@ func main() {
 	logger.Info().Msg(cfg.String())
 
 	logger.Info().Msg("инициализация генератора случайных ссылок")
-	randomStringStrategy := uniquestring.NewUUIDString()
+	randomStringStrategy := uniquestring.NewRandomStringDefault()
 
 	stringGeneratorContext := stringgenstategy.StringGeneratorContext{}
 	stringGeneratorContext.SetStrategy(randomStringStrategy)
