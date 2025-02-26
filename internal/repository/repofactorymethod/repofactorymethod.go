@@ -3,7 +3,6 @@ package repofactorymethod
 import (
 	"github.com/physicist2018/url-shortener-go/internal/domain"
 	"github.com/physicist2018/url-shortener-go/internal/repository/database/postgresdbrepo"
-	"github.com/physicist2018/url-shortener-go/internal/repository/database/sqlitedbrepo"
 	"github.com/physicist2018/url-shortener-go/internal/repository/inmemory"
 )
 
@@ -16,10 +15,6 @@ func (r *RepoFactoryMethod) createInMemoryRepo(dbname string) (*inmemory.InMemor
 	return inmemory.NewInMemoryLinkRepository(dbname)
 }
 
-func (r *RepoFactoryMethod) createSQLiteRepo(dbname string) (*sqlitedbrepo.SQLiteDBLinkRepository, error) {
-	return sqlitedbrepo.NewDBLinkRepository(dbname)
-}
-
 func (r *RepoFactoryMethod) createPostgresRepo(connStr string) (*postgresdbrepo.PostgresDBLinkRepository, error) {
 	return postgresdbrepo.NewDBLinkRepository(connStr)
 }
@@ -29,8 +24,6 @@ func (r *RepoFactoryMethod) CreateRepo(repoType string, params string) (domain.U
 	switch repoType {
 	case "inmemory":
 		return r.createInMemoryRepo(params)
-	case "sqlite":
-		return r.createSQLiteRepo(params)
 	case "postgres":
 		return r.createPostgresRepo(params)
 	default:

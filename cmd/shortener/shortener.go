@@ -1,15 +1,19 @@
 package main
 
 import (
+	"context"
 	"os"
+	"sync"
 
 	"github.com/physicist2018/url-shortener-go/internal/config"
+	"github.com/physicist2018/url-shortener-go/internal/deleter"
 	"github.com/physicist2018/url-shortener-go/internal/domain"
 	"github.com/physicist2018/url-shortener-go/internal/handler"
 	"github.com/physicist2018/url-shortener-go/internal/repository/repofactorymethod"
 	"github.com/physicist2018/url-shortener-go/internal/router"
 	"github.com/physicist2018/url-shortener-go/internal/server"
 	"github.com/physicist2018/url-shortener-go/internal/service"
+	"github.com/physicist2018/url-shortener-go/internal/stringgenstategy"
 	uniquestring "github.com/physicist2018/url-shortener-go/pkg/uniquestring"
 	"github.com/rs/zerolog"
 )
@@ -27,7 +31,10 @@ func main() {
 	logger.Info().Msg(cfg.String())
 
 	logger.Info().Msg("инициализация генератора случайных ссылок")
-	randomStringGenerator := uniquestring.NewRandomStringDefault()
+	randomStringStrategy := uniquestring.NewRandomStringDefault()
+
+	stringGeneratorContext := stringgenstategy.StringGeneratorContext{}
+	stringGeneratorContext.SetStrategy(randomStringStrategy)
 
 	repofactory := repofactorymethod.NewRepoFactoryMethod()
 	var linkRepo domain.URLLinkRepo
@@ -47,11 +54,22 @@ func main() {
 		}
 	}()
 
-	linkService := service.NewURLLinkService(linkRepo, randomStringGenerator, logger)
-	linkHandler := handler.NewURLLinkHandler(linkService, cfg.BaseURLServer, logger)
+	var wg sync.WaitGroup
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	linkService := service.NewURLLinkService(linkRepo, stringGeneratorContext, logger)
+	linkDeleter := deleter.NewDeleter(linkService, logger)
+	linkDeleter.Start(ctx, &wg) //Запускаем горутину асинхронного удаления ссылок
+
+	linkHandler := handler.NewURLLinkHandler(linkService, cfg.BaseURLServer, logger, linkDeleter)
 
 	r := router.NewRouter(linkHandler, logger)
 
 	srv := server.NewServer(cfg.ServerAddr, r, logger)
 	srv.Start()
+
+	linkHandler.Close() // Закрываем канал обмена с горутиной, что приводит к очистке очереди и завершению
+	logger.Info().Msg("Closing link handler")
+	wg.Wait()
 }

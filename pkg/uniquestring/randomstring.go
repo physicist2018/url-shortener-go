@@ -1,14 +1,16 @@
 package uniquestring
 
 import (
-	"math/rand"
 	"time"
+
+	"math/rand"
 )
 
 const (
 	RandomStringLength = 5
 )
 
+// Стратегия для генерации случайной строки на основе rand
 type RandomString struct {
 	length    int
 	generator *rand.Rand
@@ -37,8 +39,8 @@ func NewRandomStringFixed() *RandomString {
 
 const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
-// GenerateRandomString генерирует короткую ссылку из случайных символов
-func (rs *RandomString) GenerateRandomString() string {
+// Реализация метода интерфейса для генерации случайной строки
+func (rs *RandomString) Generate() string {
 	shortURL := make([]byte, rs.length)
 	for i := range shortURL {
 		shortURL[i] = charset[rs.generator.Intn(len(charset))]
