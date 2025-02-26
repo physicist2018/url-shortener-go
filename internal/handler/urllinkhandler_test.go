@@ -100,7 +100,7 @@ func TestShortenURL_Conflict(t *testing.T) {
 	defer resp.Body.Close()
 
 	assert.Equal(t, http.StatusConflict, resp.StatusCode)
-	assert.Equal(t, "http://localhost/abc123", w.Body.String())
+	assert.Equal(t, "http://localhost/abc123\n", w.Body.String())
 
 	h.Close()
 	wg.Wait()
