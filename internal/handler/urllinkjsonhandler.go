@@ -7,8 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"runtime"
-	"strconv"
+	"net/url"
 	"strings"
 	"time"
 
@@ -45,22 +44,6 @@ type (
 	}
 )
 
-func GetGoid() int64 {
-	var (
-		buf [64]byte
-		n   = runtime.Stack(buf[:], false)
-		stk = strings.TrimPrefix(string(buf[:n]), "goroutine")
-	)
-
-	idField := strings.Fields(stk)[0]
-	id, err := strconv.Atoi(idField)
-	if err != nil {
-		panic(fmt.Errorf("can not get goroutine id: %v", err))
-	}
-
-	return int64(id)
-}
-
 func (h *URLLinkHandler) HandleGenerateShortURLJson(w http.ResponseWriter, r *http.Request) {
 
 	if !h.isContentTypeJSON(r) {
@@ -70,12 +53,19 @@ func (h *URLLinkHandler) HandleGenerateShortURLJson(w http.ResponseWriter, r *ht
 
 	var reqBody requestBody
 	if err := h.decodeJSONBody(r, &reqBody); err != nil || reqBody.URL == "" {
+		h.log.Error().Err(err).Msg("Ошибка декодирования JSON")
 		http.Error(w, "Некорректное тело запроса. url должно быть json", http.StatusBadRequest)
 		return
 	}
 
 	ctx, cancel := context.WithTimeout(r.Context(), RequestResponseTimeout)
 	defer cancel()
+
+	parsedURL, err := url.ParseRequestURI(reqBody.URL)
+	if err != nil || parsedURL.Scheme == "" || parsedURL.Host == "" {
+		http.Error(w, "Некорректный URL", http.StatusBadRequest)
+		return
+	}
 
 	urlModel, err := h.service.CreateShortURL(ctx, domain.URLLink{LongURL: reqBody.URL})
 	if err != nil {
@@ -151,7 +141,7 @@ func (h *URLLinkHandler) HandleGetAllShortedURLsForUserJSON(w http.ResponseWrite
 }
 
 func (h *URLLinkHandler) HandleDeleteShortedURLsForUserJSON(w http.ResponseWriter, r *http.Request) {
-	h.log.Info().Int("GoID", int(GetGoid())).Msg("HandleGenerateShortURLJson")
+
 	userID, ok := r.Context().Value(domain.UserIDKey).(string)
 	if !ok || userID == "" {
 		http.Error(w, "UserID is missing or invalid", http.StatusUnauthorized)
@@ -176,7 +166,8 @@ func (h *URLLinkHandler) HandleDeleteShortedURLsForUserJSON(w http.ResponseWrite
 	h.log.Info().Int("длина очереди на удаление", h.deleter.Size()).Send()
 
 	h.deleter.Enqueue(urlstodelete...)
-	w.Header().Set("Content-Type", "application/json")
+	// w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Length", "0")
 	w.WriteHeader(http.StatusAccepted)
 
 }

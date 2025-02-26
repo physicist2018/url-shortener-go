@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -50,28 +51,34 @@ func (h *URLLinkHandler) ShortenURL(w http.ResponseWriter, r *http.Request) {
 
 	longURLBytes, err := io.ReadAll(r.Body)
 	if err != nil || len(longURLBytes) == 0 {
-		h.log.Info().Msg("Пустое тело запроса или ошибка чтения тела запроса")
+		h.log.Info().
+			Msg("Пустое тело запроса или ошибка чтения тела запроса")
 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
 	}
 
 	longURL := string(longURLBytes)
-	urllink, err := h.service.CreateShortURL(ctx, domain.URLLink{LongURL: longURL, UserID: userID})
+
+	_, err = url.ParseRequestURI(longURL)
 	if err != nil {
-		h.log.Info().Msg(err.Error())
-		if errors.Is(err, repoerrors.ErrorShortLinkAlreadyInDB) {
+		h.log.Error().Msg("Некорректный URL")
+		http.Error(w, "Некорректный URL", http.StatusBadRequest)
+		return
+	}
+
+	urllink, err := h.service.CreateShortURL(ctx, domain.URLLink{LongURL: longURL, UserID: userID})
+
+	if err != nil {
+		switch {
+		case errors.Is(err, repoerrors.ErrorShortLinkAlreadyInDB):
 			fullURL := strings.Join([]string{h.baseURL, urllink.ShortURL}, "/")
-			w.WriteHeader(http.StatusConflict)
-			w.Write([]byte(fullURL))
-			return
-		} else if errors.Is(err, repoerrors.ErrorSQLInternal) {
+			http.Error(w, fullURL, http.StatusConflict)
+		case errors.Is(err, repoerrors.ErrorSQLInternal):
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-			return
-		} else {
-			// Остальные ошибки трактуем как BadRequest
+		default:
 			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-			return
 		}
+		return
 	} else {
 		fullURL := strings.Join([]string{h.baseURL, urllink.ShortURL}, "/")
 		w.WriteHeader(http.StatusCreated)
@@ -100,6 +107,10 @@ func (h *URLLinkHandler) Redirect(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Location", urllink.LongURL)
 	w.WriteHeader(http.StatusTemporaryRedirect)
+	h.log.Info().
+		Str("shortURL", shortURL).
+		Str("longURL", urllink.LongURL).
+		Msg("Перенаправление выполнено успешно")
 }
 
 func (h *URLLinkHandler) PingHandler(w http.ResponseWriter, r *http.Request) {
@@ -108,9 +119,15 @@ func (h *URLLinkHandler) PingHandler(w http.ResponseWriter, r *http.Request) {
 
 	err := h.service.Ping(ctx)
 	if err != nil {
+		h.log.Info().
+			Err(err).
+			Msg("При проверке соединения возникла ошибка")
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
 	}
 	w.WriteHeader(http.StatusOK)
+	h.log.Info().
+		Msg("Соединение с БД успешно проверено")
 }
 
 func (h *URLLinkHandler) Close() {
