@@ -74,15 +74,15 @@ func (h *URLLinkHandler) ShortenURL(w http.ResponseWriter, r *http.Request) {
 			fullURL := strings.Join([]string{h.baseURL, urllink.ShortURL}, "/")
 			w.WriteHeader(http.StatusConflict)
 			w.Write([]byte(fullURL))
-			//http.Error(w, fullURL, http.StatusConflict)
+
 		case errors.Is(err, repoerrors.ErrorSQLInternal):
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte(http.StatusText(http.StatusInternalServerError)))
-			//http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+
 		default:
 			w.WriteHeader(http.StatusBadRequest)
 			w.Write([]byte(http.StatusText(http.StatusBadRequest)))
-			//http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+
 		}
 		return
 	} else {
