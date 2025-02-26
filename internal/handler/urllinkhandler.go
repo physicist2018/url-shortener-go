@@ -58,7 +58,7 @@ func (h *URLLinkHandler) ShortenURL(w http.ResponseWriter, r *http.Request) {
 	}
 
 	longURL := string(longURLBytes)
-
+	longURL = strings.TrimSpace(longURL)
 	_, err = url.ParseRequestURI(longURL)
 	if err != nil {
 		h.log.Error().Msg("Некорректный URL")
