@@ -41,7 +41,7 @@ func AuthMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		ctx := context.WithValue(r.Context(), domain.UserIDKey, userID)
+		ctx := context.WithValue(r.Context(), domain.UserIDKey{}, userID)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -55,7 +55,7 @@ func AuthMiddlewareFunc(next http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 
-		ctx := context.WithValue(r.Context(), domain.UserIDKey, userID)
+		ctx := context.WithValue(r.Context(), domain.UserIDKey{}, userID)
 		next(w, r.WithContext(ctx))
 	})
 }

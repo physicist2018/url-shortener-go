@@ -45,7 +45,7 @@ func NewURLLinkHandler(service domain.URLLinkService, baseURL string, logger zer
 }
 
 func (h *URLLinkHandler) ShortenURL(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value(domain.UserIDKey).(string)
+	userID := r.Context().Value(domain.UserIDKey{}).(string)
 	ctx, cancel := context.WithTimeout(r.Context(), RequestResponseTimeout)
 	defer cancel()
 

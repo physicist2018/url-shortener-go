@@ -1,5 +1,3 @@
 package domain
 
-type contextKey string
-
-const UserIDKey contextKey = "UserID"
+type UserIDKey struct{}

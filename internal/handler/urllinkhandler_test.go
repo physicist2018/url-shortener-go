@@ -34,7 +34,7 @@ func TestShortenURL_Success(t *testing.T) {
 	w := httptest.NewRecorder()
 	body := bytes.NewBufferString("https://example.com")
 	r := httptest.NewRequest(http.MethodPost, "/", body)
-	r = r.WithContext(context.WithValue(r.Context(), domain.UserIDKey, "test-user"))
+	r = r.WithContext(context.WithValue(r.Context(), domain.UserIDKey{}, "test-user"))
 
 	expectedURLLink := domain.URLLink{
 		LongURL:  "https://example.com",
@@ -78,7 +78,7 @@ func TestShortenURL_Conflict(t *testing.T) {
 	w := httptest.NewRecorder()
 	body := bytes.NewBufferString("https://example.com")
 	r := httptest.NewRequest(http.MethodPost, "/shorten", body)
-	r = r.WithContext(context.WithValue(r.Context(), domain.UserIDKey, "test-user"))
+	r = r.WithContext(context.WithValue(r.Context(), domain.UserIDKey{}, "test-user"))
 
 	existingURLLink := domain.URLLink{
 		LongURL:  "https://example.com",
@@ -135,7 +135,7 @@ func TestShortenURL_BadRequest(t *testing.T) {
 			w := httptest.NewRecorder()
 			body := bytes.NewBufferString(tt.body)
 			r := httptest.NewRequest(http.MethodPost, "/", body)
-			r = r.WithContext(context.WithValue(r.Context(), domain.UserIDKey, "test-user"))
+			r = r.WithContext(context.WithValue(r.Context(), domain.UserIDKey{}, "test-user"))
 
 			h.ShortenURL(w, r)
 
@@ -167,7 +167,7 @@ func TestShortenURL_InternalServerError(t *testing.T) {
 	w := httptest.NewRecorder()
 	body := bytes.NewBufferString("https://example.com")
 	r := httptest.NewRequest(http.MethodPost, "/shorten", body)
-	r = r.WithContext(context.WithValue(r.Context(), domain.UserIDKey, "test-user"))
+	r = r.WithContext(context.WithValue(r.Context(), domain.UserIDKey{}, "test-user"))
 
 	mockService.
 		EXPECT().

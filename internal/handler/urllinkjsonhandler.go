@@ -109,7 +109,7 @@ func (h *URLLinkHandler) HandleGenerateShortURLJsonBatch(w http.ResponseWriter, 
 }
 
 func (h *URLLinkHandler) HandleGetAllShortedURLsForUserJSON(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value(domain.UserIDKey).(string)
+	userID := r.Context().Value(domain.UserIDKey{}).(string)
 
 	ctx, cancel := context.WithTimeout(r.Context(), RequestResponseTimeout)
 	defer cancel()
@@ -142,7 +142,7 @@ func (h *URLLinkHandler) HandleGetAllShortedURLsForUserJSON(w http.ResponseWrite
 
 func (h *URLLinkHandler) HandleDeleteShortedURLsForUserJSON(w http.ResponseWriter, r *http.Request) {
 
-	userID, ok := r.Context().Value(domain.UserIDKey).(string)
+	userID, ok := r.Context().Value(domain.UserIDKey{}).(string)
 	if !ok || userID == "" {
 		http.Error(w, "UserID is missing or invalid", http.StatusUnauthorized)
 		return
