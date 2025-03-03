@@ -84,7 +84,6 @@ func (h *URLLinkHandler) ShortenURL(w http.ResponseWriter, r *http.Request) {
 			w.Write([]byte(http.StatusText(http.StatusBadRequest)))
 
 		}
-		return
 	} else {
 		fullURL := strings.Join([]string{h.baseURL, urllink.ShortURL}, "/")
 		w.WriteHeader(http.StatusCreated)

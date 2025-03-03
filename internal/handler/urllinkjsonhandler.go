@@ -148,7 +148,7 @@ func (h *URLLinkHandler) HandleDeleteShortedURLsForUserJSON(w http.ResponseWrite
 		return
 	}
 
-	h.log.Info().Str("userID", userID).Msg("Пользователь запросивший удаление")
+	h.log.Debug().Str("userID", userID).Msg("Пользователь запросивший удаление")
 	var shortLinks []string
 	if err := h.decodeArrayOfShortLinks(r, &shortLinks); err != nil || len(shortLinks) == 0 {
 		http.Error(w, "Некорректное тело запроса. Это должен быть список котортких ссылок в json", http.StatusBadRequest)

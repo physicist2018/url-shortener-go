@@ -4,17 +4,17 @@ import (
 	"context"
 
 	"github.com/physicist2018/url-shortener-go/internal/domain"
-	"github.com/physicist2018/url-shortener-go/internal/stringgenstategy"
+	"github.com/physicist2018/url-shortener-go/internal/stringgenstrategy"
 	"github.com/rs/zerolog"
 )
 
 type URLLinkService struct {
 	log       zerolog.Logger
-	generator stringgenstategy.StringGeneratorContext
+	generator stringgenstrategy.StringGeneratorContext
 	repo      domain.URLLinkRepo
 }
 
-func NewURLLinkService(repo domain.URLLinkRepo, generator stringgenstategy.StringGeneratorContext, logger zerolog.Logger) *URLLinkService {
+func NewURLLinkService(repo domain.URLLinkRepo, generator stringgenstrategy.StringGeneratorContext, logger zerolog.Logger) *URLLinkService {
 	return &URLLinkService{
 		repo:      repo,
 		generator: generator,

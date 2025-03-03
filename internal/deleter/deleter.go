@@ -55,7 +55,7 @@ func (d *Deleter) Start(ctx context.Context, wg *sync.WaitGroup) {
 						Str("user_id", batch[0].UserID).
 						Msg("Ссылки успешно помечены на удаление")
 				}
-				batch = nil // Очищаем пачку после обработки
+				batch = batch[0:] // Очищаем пачку после обработки
 			}
 		}
 
@@ -106,8 +106,5 @@ func (d *Deleter) Close() {
 }
 
 func (d *Deleter) Size() int {
-	if d.deleteQueue == nil {
-		return 0
-	}
 	return len(d.deleteQueue)
 }

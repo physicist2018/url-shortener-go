@@ -1,4 +1,4 @@
-package postgresdbrepo
+package postgres
 
 import (
 	"context"

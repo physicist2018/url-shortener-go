@@ -13,7 +13,7 @@ import (
 	"github.com/physicist2018/url-shortener-go/internal/router"
 	"github.com/physicist2018/url-shortener-go/internal/server"
 	"github.com/physicist2018/url-shortener-go/internal/service"
-	"github.com/physicist2018/url-shortener-go/internal/stringgenstategy"
+	stringgenstategy "github.com/physicist2018/url-shortener-go/internal/stringgenstrategy"
 	uniquestring "github.com/physicist2018/url-shortener-go/pkg/uniquestring"
 	"github.com/rs/zerolog"
 )

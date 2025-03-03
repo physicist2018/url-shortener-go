@@ -2,7 +2,7 @@ package repofactorymethod
 
 import (
 	"github.com/physicist2018/url-shortener-go/internal/domain"
-	"github.com/physicist2018/url-shortener-go/internal/repository/database/postgresdbrepo"
+	"github.com/physicist2018/url-shortener-go/internal/repository/database/postgres"
 	"github.com/physicist2018/url-shortener-go/internal/repository/inmemory"
 )
 
@@ -15,8 +15,8 @@ func (r *RepoFactoryMethod) createInMemoryRepo(dbname string) (*inmemory.InMemor
 	return inmemory.NewInMemoryLinkRepository(dbname)
 }
 
-func (r *RepoFactoryMethod) createPostgresRepo(connStr string) (*postgresdbrepo.PostgresDBLinkRepository, error) {
-	return postgresdbrepo.NewDBLinkRepository(connStr)
+func (r *RepoFactoryMethod) createPostgresRepo(connStr string) (*postgres.PostgresDBLinkRepository, error) {
+	return postgres.NewDBLinkRepository(connStr)
 }
 
 // Фабричный метод для создания репозитория

@@ -1,4 +1,4 @@
-package stringgenstategy
+package stringgenstrategy
 
 import "github.com/physicist2018/url-shortener-go/internal/ports/randomstring"
 
