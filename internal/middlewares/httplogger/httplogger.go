@@ -53,12 +53,9 @@ func LoggerMiddleware(logger *zerolog.Logger) func(http.Handler) http.Handler {
 			uri := r.RequestURI
 			method := r.Method
 
-			next.ServeHTTP(&lw, r)
-
-			duration := time.Since(start)
-
 			// если сервер выдаст ошибку, то в этом случае все равно выведет статус
 			defer func() {
+				duration := time.Since(start)
 				logger.Debug().
 					Str("uri", uri).
 					Str("method", method).
@@ -67,6 +64,8 @@ func LoggerMiddleware(logger *zerolog.Logger) func(http.Handler) http.Handler {
 					Int("size", respData.size).
 					Send()
 			}()
+
+			next.ServeHTTP(&lw, r)
 		})
 	}
 }
